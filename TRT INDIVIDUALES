@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control de Tanques AQ</title>
+    <style>
+        :root { --primary: #2563eb; --bg: #f1f5f9; --text: #1e293b; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding-bottom: 80px; }
+        .tab-content { display: none; padding: 15px; }
+        .active { display: block; }
+        
+        /* Grid de Tanques */
+        .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 10px 0; }
+        .chip { border: 1px solid #cbd5e1; padding: 12px 5px; text-align: center; border-radius: 8px; cursor: pointer; background: white; font-weight: bold; font-size: 13px; position: relative; }
+        .chip.selected { border: 3px solid var(--primary); background: #dbeafe; }
+        .multiplier-tag { font-size: 10px; display: block; color: var(--primary); }
+
+        /* Modal / Selector de Multiplicador */
+        #modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 100; justify-content: center; align-items: center; }
+        .modal-content { background: white; padding: 20px; border-radius: 15px; text-align: center; width: 80%; }
+        .opt-btn { display: block; width: 100%; padding: 15px; margin: 10px 0; border: 1px solid #ddd; border-radius: 10px; font-size: 18px; cursor: pointer; }
+
+        /* Controles */
+        input[type="date"] { width: 93%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; }
+        .btn-group { display: flex; gap: 10px; margin-top: 15px; }
+        button { flex: 1; padding: 15px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        .btn-ok { background: #22c55e; color: white; }
+        .btn-del { background: #ef4444; color: white; }
+
+        /* Resumen */
+        .registro-card { background: white; padding: 12px; margin-bottom: 10px; border-radius: 10px; border-left: 5px solid #22c55e; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .registro-card.expirado { border-left-color: #ef4444; opacity: 0.7; }
+        .days-left { float: right; font-weight: bold; color: var(--primary); }
+
+        nav { position: fixed; bottom: 0; width: 100%; background: white; display: flex; border-top: 1px solid #ddd; }
+        nav button { background: none; color: #64748b; border: none; flex: 1; padding: 15px 0; font-size: 12px; }
+        nav button.active-nav { color: var(--primary); border-top: 3px solid var(--primary); }
+    </style>
+</head>
+<body>
+
+    <div id="modal">
+        <div class="modal-content">
+            <h3>Selecciona Duración</h3>
+            <button class="opt-btn" onclick="setMulti(1)">AQ X1 (1 día)</button>
+            <button class="opt-btn" onclick="setMulti(3)">AQ X3 (3 días)</button>
+            <button class="opt-btn" onclick="setMulti(5)">AQ X5 (5 días)</button>
+            <button onclick="cerrarModal()" style="margin-top:10px; background:none; border:none; color:red;">Cancelar</button>
+        </div>
+    </div>
+
+    <div id="p0" class="tab-content active">
+        <h2>Tanques AG01-24</h2>
+        <input type="date" id="date0">
+        <div class="grid" id="grid0"></div>
+        <div class="btn-group">
+            <button class="btn-del" onclick="limpiar()">BORRAR</button>
+            <button class="btn-ok" onclick="guardar()">INSERTAR DATO</button>
+        </div>
+    </div>
+
+    <div id="p1" class="tab-content">
+        <h2>Tanques AG25-44</h2>
+        <input type="date" id="date1">
+        <div class="grid" id="grid1"></div>
+        <div class="btn-group">
+            <button class="btn-del" onclick="limpiar()">BORRAR</button>
+            <button class="btn-ok" onclick="guardar()">INSERTAR DATO</button>
+        </div>
+    </div>
+
+    <div id="p2" class="tab-content">
+        <h2>Tanques AN/AP</h2>
+        <input type="date" id="date2">
+        <div class="grid" id="grid2"></div>
+        <div class="btn-group">
+            <button class="btn-del" onclick="limpiar()">BORRAR</button>
+            <button class="btn-ok" onclick="guardar()">INSERTAR DATO</button>
+        </div>
+    </div>
+
+    <div id="p3" class="tab-content">
+        <h2>Resumen y Días Restantes</h2>
+        <div style="margin-bottom:15px; background:white; padding:10px; border-radius:10px;">
+            Filtro: <input type="date" id="filtroDesde" style="width:40%"> a <input type="date" id="filtroHasta" style="width:40%">
+            <button onclick="renderResumen()" style="background:#64748b; color:white; width:100%; margin-top:10px;">BUSCAR</button>
+        </div>
+        <div id="listaResumen"></div>
+    </div>
+
+    <nav>
+        <button onclick="showTab('p0')" id="btn-p0" class="active-nav">P0</button>
+        <button onclick="showTab('p1')" id="btn-p1">P1</button>
+        <button onclick="showTab('p2')" id="btn-p2">P2</button>
+        <button onclick="showTab('p3')" id="btn-p3">Resumen</button>
+    </nav>
+
+    <script>
+        let seleccionTemporal = { id: null, tanque: null, multi: null };
+        let tanquesSeleccionados = [];
+
+        const config = {
+            grid0: Array.from({length: 24}, (_, i) => `AG${(i+1).toString().padStart(2, '0')}`),
+            grid1: Array.from({length: 20}, (_, i) => `AG${(i+25).toString().padStart(2, '0')}`),
+            grid2: [...Array.from({length: 24}, (_, i) => `AN${(i+1).toString().padStart(2, '0')}`), 'AP01', 'AP02']
+        };
+
+        function init() {
+            Object.keys(config).forEach(gridId => {
+                const container = document.getElementById(gridId);
+                config[gridId].forEach(name => {
+                    const div = document.createElement('div');
+                    div.className = 'chip';
+                    div.id = `chip-${name}`;
+                    div.innerHTML = `<span>${name}</span><span class="multiplier-tag" id="tag-${name}"></span>`;
+                    div.onclick = () => abrirModal(name);
+                    container.appendChild(div);
+                });
+            });
+            const hoy = new Date().toISOString().split('T')[0];
+            document.querySelectorAll('input[type="date"]').forEach(i => i.value = hoy);
+            renderResumen();
+        }
+
+        function abrirModal(name) {
+            seleccionTemporal.tanque = name;
+            document.getElementById('modal').style.display = 'flex';
+        }
+
+        function cerrarModal() {
+            document.getElementById('modal').style.display = 'none';
+        }
+
+        function setMulti(num) {
+            const name = seleccionTemporal.tanque;
+            // Guardar en la lista local de la sesión antes de insertar
+            const index = tanquesSeleccionados.findIndex(t => t.nombre === name);
+            if(index > -1) tanquesSeleccionados.splice(index, 1);
+            
+            tanquesSeleccionados.push({ nombre: name, multi: num });
+            
+            // Visual
+            const chip = document.getElementById(`chip-${name}`);
+            chip.classList.add('selected');
+            document.getElementById(`tag-${name}`).innerText = `X${num}`;
+            cerrarModal();
+        }
+
+        function showTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('nav button').forEach(b => b.classList.remove('active-nav'));
+            document.getElementById(tabId).classList.add('active');
+            document.getElementById('btn-' + tabId).classList.add('active-nav');
+            if(tabId === 'p3') renderResumen();
+        }
+
+        function limpiar() {
+            tanquesSeleccionados = [];
+            document.querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
+            document.querySelectorAll('.multiplier-tag').forEach(t => t.innerText = '');
+        }
+
+        function guardar() {
+            const activa = document.querySelector('.tab-content.active').id;
+            const fechaInput = document.querySelector(`#${activa} input[type="date"]`).value;
+            
+            if(tanquesSeleccionados.length === 0) return alert("Selecciona tanques primero");
+
+            let datos = JSON.parse(localStorage.getItem('registrosAQ') || '[]');
+            
+            tanquesSeleccionados.forEach(t => {
+                let fechaFin = new Date(fechaInput);
+                fechaFin.setDate(fechaFin.getDate() + (t.multi - 1));
+                
+                datos.push({
+                    inicio: fechaInput,
+                    fin: fechaFin.toISOString().split('T')[0],
+                    tanque: t.nombre,
+                    tipo: `AQ X${t.multi}`
+                });
+            });
+
+            localStorage.setItem('registrosAQ', JSON.stringify(datos));
+            alert("¡Insertado correctamente!");
+            limpiar();
+        }
+
+        function renderResumen() {
+            const lista = document.getElementById('listaResumen');
+            const desde = document.getElementById('filtroDesde').value;
+            const hasta = document.getElementById('filtroHasta').value;
+            const hoy = new Date();
+            hoy.setHours(0,0,0,0);
+
+            let datos = JSON.parse(localStorage.getItem('registrosAQ') || '[]');
+            
+            if(desde && hasta) {
+                datos = datos.filter(d => d.inicio >= desde && d.inicio <= hasta);
+            } else {
+                // Si no hay filtro, mostrar los que vencen hoy o en el futuro
+                datos = datos.filter(d => new Date(d.fin) >= hoy);
+            }
+
+            lista.innerHTML = datos.length ? "" : "No hay registros activos.";
+            
+            datos.sort((a,b) => new Date(a.fin) - new Date(b.fin)).forEach(d => {
+                const fFin = new Date(d.fin);
+                fFin.setHours(0,0,0,0);
+                const diffTime = fFin - hoy;
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                
+                const claseExpirado = diffDays < 0 ? 'expirado' : '';
+                const textoDias = diffDays < 0 ? 'Terminado' : (diffDays === 0 ? 'Último día' : `${diffDays} días restantes`);
+
+                lista.innerHTML += `
+                    <div class="registro-card ${claseExpirado}">
+                        <span class="days-left">${textoDias}</span>
+                        <strong>${d.tanque}</strong> (${d.tipo})<br>
+                        <small>Inicio: ${d.inicio} | Fin: ${d.fin}</small>
+                    </div>`;
+            });
+        }
+
+        init();
+    </script>
+</body>
+</html>
