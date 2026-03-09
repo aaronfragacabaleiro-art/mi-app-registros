@@ -8,36 +8,36 @@
         :root { --blue: #2563eb; --bg: #f1f5f9; --text: #1e293b; }
         body { font-family: sans-serif; background: var(--bg); color: var(--text); margin: 0; padding-bottom: 90px; }
         
-        /* Estructura Pestañas */
         .tab { display: none; padding: 15px; }
         .active { display: block; }
         
-        /* Grillas y Casillas */
+        /* Grillas */
         .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 20px; }
         .chip { background: white; border: 1px solid #ccc; padding: 15px 2px; text-align: center; border-radius: 8px; font-weight: bold; font-size: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
         .chip.sel { background: #dbeafe; border: 2px solid var(--blue); color: var(--blue); }
         .tag-aq { display: block; font-size: 9px; font-weight: normal; color: #666; margin-top: 2px; min-height: 10px; }
 
-        /* Modal */
+        /* Ventana AQ */
         #modal { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:999; justify-content:center; align-items:center; }
         .m-box { background: white; padding: 25px; border-radius: 20px; width: 85%; max-width: 320px; text-align: center; }
         .m-btn { display: block; width: 100%; padding: 15px; margin: 10px 0; border: 1px solid #ddd; border-radius: 12px; font-size: 16px; font-weight: bold; background: #f8fafc; }
 
-        /* Formularios y Botones */
+        /* Inputs y Botones */
         label { display: block; font-size: 12px; font-weight: bold; margin-bottom: 5px; color: #64748b; }
         input[type="date"] { width: 100%; padding: 12px; box-sizing: border-box; margin-bottom: 10px; border-radius: 8px; border: 1px solid #ddd; font-size: 16px; }
         .btn-ok { width: 100%; background: #22c55e; color: white; padding: 18px; border: none; border-radius: 12px; font-weight: bold; font-size: 16px; }
         .btn-search { width: 100%; background: var(--blue); color: white; padding: 12px; border: none; border-radius: 8px; font-weight: bold; margin-bottom: 20px; }
 
-        /* Tarjetas de Resumen e Histórico */
-        .card { background: white; padding: 12px; margin-bottom: 8px; border-radius: 10px; border-left: 5px solid #22c55e; position: relative; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        .card.past { border-left-color: #94a3b8; opacity: 0.8; }
+        /* Tarjetas Historial */
+        .card { background: white; padding: 12px; margin-bottom: 8px; border-radius: 10px; border-left: 5px solid #22c55e; position: relative; }
+        .card.past { border-left-color: #94a3b8; }
         .dias { position: absolute; right: 10px; top: 12px; font-weight: bold; color: var(--blue); font-size: 12px; }
+        .del-btn { color: #ef4444; font-size: 11px; font-weight: bold; border: none; background: none; padding: 0; margin-top: 5px; cursor: pointer; }
 
-        /* Navegación */
+        /* Nav */
         nav { position: fixed; bottom: 0; width: 100%; background: white; display: flex; border-top: 1px solid #ddd; height: 75px; z-index: 100; }
-        nav button { flex: 1; border: none; background: none; font-weight: bold; color: #64748b; font-size: 11px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        nav button.act { color: var(--blue); border-top: 4px solid var(--blue); background: #f8fafc; }
+        nav button { flex: 1; border: none; background: none; font-weight: bold; color: #64748b; font-size: 11px; }
+        nav button.act { color: var(--blue); border-top: 4px solid var(--blue); }
     </style>
 </head>
 <body onload="iniciar()">
@@ -54,7 +54,6 @@
 
     <div id="p0" class="tab active">
         <h2>P0: AG01 - AG24</h2>
-        <label>Fecha de aplicación:</label>
         <input type="date" id="date0">
         <div id="g0" class="grid"></div>
         <button class="btn-ok" onclick="guardar()">INSERTAR DATOS (OK)</button>
@@ -62,15 +61,13 @@
 
     <div id="p1" class="tab">
         <h2>P1: AG25 - AG44</h2>
-        <label>Fecha de aplicación:</label>
         <input type="date" id="date1">
         <div id="g1" class="grid"></div>
         <button class="btn-ok" onclick="guardar()">INSERTAR DATOS (OK)</button>
     </div>
 
     <div id="p2" class="tab">
-        <h2>P2: AN01-24 / AP01-02</h2>
-        <label>Fecha de aplicación:</label>
+        <h2>P2: AN01-24 / AP01-20</h2>
         <input type="date" id="date2">
         <div id="g2" class="grid"></div>
         <button class="btn-ok" onclick="guardar()">INSERTAR DATOS (OK)</button>
@@ -105,11 +102,13 @@
         const tanques = {
             g0: Array.from({length: 24}, (_,i) => "AG"+(i+1).toString().padStart(2,'0')),
             g1: Array.from({length: 20}, (_,i) => "AG"+(i+25).toString().padStart(2,'0')),
-            g2: [...Array.from({length: 24}, (_,i) => "AN"+(i+1).toString().padStart(2,'0')), "AP01", "AP02"]
+            g2: [
+                ...Array.from({length: 24}, (_,i) => "AN"+(i+1).toString().padStart(2,'0')), 
+                ...Array.from({length: 20}, (_,i) => "AP"+(i+1).toString().padStart(2,'0'))
+            ]
         };
 
         function iniciar() {
-            // Generar cuadrículas
             Object.keys(tanques).forEach(gridId => {
                 const box = document.getElementById(gridId);
                 tanques[gridId].forEach(name => {
@@ -120,7 +119,6 @@
                     box.appendChild(div);
                 });
             });
-            // Fechas hoy
             const hoy = new Date().toISOString().split('T')[0];
             document.querySelectorAll('input[type="date"]').forEach(i => i.value = hoy);
             actualizarResumen();
@@ -145,17 +143,15 @@
         }
 
         function guardar() {
-            if(temp.length === 0) return alert("Selecciona tanques primero");
+            if(temp.length === 0) return alert("Selecciona tanques");
             const fecha = document.querySelector('.active input[type="date"]').value;
-            let db = JSON.parse(localStorage.getItem('aq_db_vFinal') || '[]');
-            
+            let db = JSON.parse(localStorage.getItem('aq_db_pro') || '[]');
             temp.forEach(item => {
                 let fF = new Date(fecha); fF.setDate(fF.getDate() + (item.v - 1));
-                db.push({ n: item.id, q: item.v, i: fecha, f: fF.toISOString().split('T')[0] });
+                db.push({ idUnique: Date.now() + Math.random(), n: item.id, q: item.v, i: fecha, f: fF.toISOString().split('T')[0] });
             });
-            
-            localStorage.setItem('aq_db_vFinal', JSON.stringify(db));
-            alert("¡Datos guardados con éxito!");
+            localStorage.setItem('aq_db_pro', JSON.stringify(db));
+            alert("¡Guardado!");
             temp = [];
             document.querySelectorAll('.chip').forEach(c => c.classList.remove('sel'));
             document.querySelectorAll('.tag-aq').forEach(t => t.innerText = "");
@@ -164,19 +160,12 @@
         function actualizarResumen() {
             const lista = document.getElementById('resumen-lista');
             const hoy = new Date(); hoy.setHours(0,0,0,0);
-            let db = JSON.parse(localStorage.getItem('aq_db_vFinal') || '[]');
-            
-            // Solo activos (que no han caducado)
+            let db = JSON.parse(localStorage.getItem('aq_db_pro') || '[]');
             let activos = db.filter(x => new Date(x.f) >= hoy);
-            
-            lista.innerHTML = activos.length ? "" : "<p style='text-align:center'>No hay tanques con AQ activo.</p>";
+            lista.innerHTML = activos.length ? "" : "<p style='text-align:center'>Sin activos.</p>";
             activos.sort((a,b) => new Date(a.f) - new Date(b.f)).forEach(r => {
                 const diff = Math.ceil((new Date(r.f) - hoy) / 86400000);
-                lista.innerHTML += `<div class="card">
-                    <span class="dias">${diff === 0 ? 'TERMINA HOY' : diff+'d'}</span>
-                    <b>${r.n}</b> (AQ X${r.q})<br>
-                    <small>Inicio: ${r.i} | Fin: ${r.f}</small>
-                </div>`;
+                lista.innerHTML += `<div class="card"><span class="dias">${diff === 0 ? 'HOY' : diff+'d'}</span><b>${r.n}</b> (AQ X${r.q})<br><small>Hasta: ${r.f}</small></div>`;
             });
         }
 
@@ -184,20 +173,22 @@
             const desde = document.getElementById('h-desde').value;
             const hasta = document.getElementById('h-hasta').value;
             const listaH = document.getElementById('historico-lista');
-            let db = JSON.parse(localStorage.getItem('aq_db_vFinal') || '[]');
-            
-            if(!desde || !hasta) return alert("Selecciona ambas fechas");
-
+            let db = JSON.parse(localStorage.getItem('aq_db_pro') || '[]');
+            if(!desde || !hasta) return alert("Elige fechas");
             let filtrados = db.filter(x => x.i >= desde && x.i <= hasta);
-            filtrados.sort((a,b) => new Date(b.i) - new Date(a.i)); // Más recientes primero
-
-            listaH.innerHTML = filtrados.length ? "" : "<p style='text-align:center'>No se encontraron registros en esas fechas.</p>";
+            filtrados.sort((a,b) => new Date(b.i) - new Date(a.i));
+            listaH.innerHTML = filtrados.length ? "" : "<p style='text-align:center'>No hay datos.</p>";
             filtrados.forEach(r => {
-                listaH.innerHTML += `<div class="card past">
-                    <b>${r.n}</b> (AQ X${r.q})<br>
-                    <small>Aplicado: ${r.i} | Caducó: ${r.f}</small>
-                </div>`;
+                listaH.innerHTML += `<div class="card past"><b>${r.n}</b> (AQ X${r.q})<br><small>Fecha: ${r.i}</small><br><button class="del-btn" onclick="eliminarRegistro(${r.idUnique})">Eliminar</button></div>`;
             });
+        }
+
+        function eliminarRegistro(id) {
+            if(!confirm("¿Borrar este registro?")) return;
+            let db = JSON.parse(localStorage.getItem('aq_db_pro') || '[]');
+            db = db.filter(x => x.idUnique !== id);
+            localStorage.setItem('aq_db_pro', JSON.stringify(db));
+            filtrarHistorico();
         }
     </script>
 </body>
