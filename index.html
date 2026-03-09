@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mi App de Registros</title>
+    <style>
+        :root { --primary: #2563eb; --bg: #f8fafc; --text: #1e293b; }
+        body { font-family: sans-serif; background: var(--bg); color: var(--text); margin: 0; padding-bottom: 60px; }
+        .tab-content { display: none; padding: 20px; }
+        .active { display: block; }
+        
+        /* Grid de Casillas */
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); gap: 10px; margin: 15px 0; }
+        .chip { border: 1px solid #cbd5e1; padding: 10px; text-align: center; border-radius: 8px; cursor: pointer; background: white; }
+        .chip.selected { background: var(--primary); color: white; border-color: var(--primary); }
+        
+        /* Controles */
+        input[type="date"] { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; }
+        .btn-group { display: flex; gap: 10px; }
+        button { flex: 1; padding: 15px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        .btn-ok { background: #22c55e; color: white; }
+        .btn-del { background: #ef4444; color: white; }
+
+        /* Navegación Inferior */
+        nav { position: fixed; bottom: 0; width: 100%; background: white; display: flex; border-top: 1px solid #ddd; }
+        nav button { background: none; color: #64748b; border-radius: 0; padding: 15px 5px; font-size: 12px; }
+        nav button.active-nav { color: var(--primary); border-bottom: 3px solid var(--primary); }
+        
+        /* Resumen */
+        .registro-item { background: white; padding: 10px; margin-bottom: 5px; border-radius: 5px; border-left: 4px solid var(--primary); }
+    </style>
+</head>
+<body>
+
+    <div id="p0" class="tab-content active">
+        <h2>Pestaña 0 (AG01-24)</h2>
+        <input type="date" id="date0">
+        <div class="grid" id="grid0"></div>
+        <div class="btn-group">
+            <button class="btn-del" onclick="limpiar('grid0')">BORRAR</button>
+            <button class="btn-ok" onclick="guardar('grid0', 'date0')">OK</button>
+        </div>
+    </div>
+
+    <div id="p1" class="tab-content">
+        <h2>Pestaña 1 (AG25-44)</h2>
+        <input type="date" id="date1">
+        <div class="grid" id="grid1"></div>
+        <div class="btn-group">
+            <button class="btn-del" onclick="limpiar('grid1')">BORRAR</button>
+            <button class="btn-ok" onclick="guardar('grid1', 'date1')">OK</button>
+        </div>
+    </div>
+
+    <div id="p2" class="tab-content">
+        <h2>Pestaña 2 (AN/AP)</h2>
+        <input type="date" id="date2">
+        <div class="grid" id="grid2"></div>
+        <div class="btn-group">
+            <button class="btn-del" onclick="limpiar('grid2')">BORRAR</button>
+            <button class="btn-ok" onclick="guardar('grid2', 'date2')">OK</button>
+        </div>
+    </div>
+
+    <div id="p3" class="tab-content">
+        <h2>Resumen Actualizado</h2>
+        <div style="margin-bottom:15px;">
+            Desde: <input type="date" id="filtroDesde">
+            Hasta: <input type="date" id="filtroHasta">
+            <button onclick="renderResumen()" style="background:#64748b; color:white; margin-top:5px;">BUSCAR</button>
+        </div>
+        <div id="listaResumen"></div>
+    </div>
+
+    <nav>
+        <button onclick="showTab('p0')" id="btn-p0" class="active-nav">P0</button>
+        <button onclick="showTab('p1')" id="btn-p1">P1</button>
+        <button onclick="showTab('p2')" id="btn-p2">P2</button>
+        <button onclick="showTab('p3')" id="btn-p3">Resumen</button>
+    </nav>
+
+    <script>
+        // Configuración de datos
+        const config = {
+            grid0: Array.from({length: 24}, (_, i) => `AG${(i+1).toString().padStart(2, '0')}`),
+            grid1: Array.from({length: 20}, (_, i) => `AG${(i+25).toString().padStart(2, '0')}`),
+            grid2: [...Array.from({length: 24}, (_, i) => `AN${(i+1).toString().padStart(2, '0')}`), 'AP01', 'AP02']
+        };
+
+        // Inicializar Grillas
+        function init() {
+            Object.keys(config).forEach(id => {
+                const container = document.getElementById(id);
+                config[id].forEach(code => {
+                    const div = document.createElement('div');
+                    div.className = 'chip';
+                    div.innerText = code;
+                    div.onclick = () => div.classList.toggle('selected');
+                    container.appendChild(div);
+                });
+            });
+            // Set hoy por defecto
+            const hoy = new Date().toISOString().split('T')[0];
+            document.querySelectorAll('input[type="date"]').forEach(i => i.value = hoy);
+            renderResumen();
+        }
+
+        function showTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('nav button').forEach(b => b.classList.remove('active-nav'));
+            document.getElementById(tabId).classList.add('active');
+            document.getElementById('btn-' + tabId).classList.add('active-nav');
+            if(tabId === 'p3') renderResumen();
+        }
+
+        function limpiar(gridId) {
+            document.querySelectorAll(`#${gridId} .chip`).forEach(c => c.classList.remove('selected'));
+        }
+
+        function guardar(gridId, dateId) {
+            const fecha = document.getElementById(dateId).value;
+            const seleccionados = Array.from(document.querySelectorAll(`#${gridId} .selected`)).map(c => c.innerText);
+            
+            if(seleccionados.length === 0) return alert("Selecciona casillas");
+
+            let datos = JSON.parse(localStorage.getItem('misRegistros') || '[]');
+            seleccionados.forEach(item => datos.push({fecha, item}));
+            localStorage.setItem('misRegistros', JSON.stringify(datos));
+            
+            alert("Guardado!");
+            limpiar(gridId);
+        }
+
+        function renderResumen() {
+            const lista = document.getElementById('listaResumen');
+            const desde = document.getElementById('filtroDesde').value;
+            const hasta = document.getElementById('filtroHasta').value;
+            const hoy = new Date().toISOString().split('T')[0];
+            
+            let datos = JSON.parse(localStorage.getItem('misRegistros') || '[]');
+            
+            // Filtrado
+            if(desde && hasta) {
+                datos = datos.filter(d => d.fecha >= desde && d.fecha <= hasta);
+            } else {
+                datos = datos.filter(d => d.fecha === hoy);
+            }
+
+            lista.innerHTML = datos.length ? "" : "No hay registros para este periodo.";
+            datos.sort((a,b) => b.fecha.localeCompare(a.fecha)).forEach(d => {
+                lista.innerHTML += `<div class="registro-item"><strong>${d.fecha}</strong>: ${d.item}</div>`;
+            });
+        }
+
+        init();
+    </script>
+</body>
+</html>
