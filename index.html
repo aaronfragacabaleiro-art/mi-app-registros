@@ -7,33 +7,21 @@
     <style>
         :root { --primary: #2563eb; --bg: #f1f5f9; --text: #1e293b; }
         body { font-family: sans-serif; background: var(--bg); margin: 0; padding-bottom: 80px; }
-        
-        /* Contenedores de cada página */
         .tab-content { display: none; padding: 15px; }
         .active { display: block; }
-        
-        /* Títulos y Grilla */
         h2 { font-size: 1.1rem; color: var(--primary); margin-bottom: 10px; border-bottom: 1px solid #ccc; padding-bottom: 5px; }
         .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 20px; }
-        
-        /* Estilo de cada Casilla (Tanque) */
         .chip { background: white; border: 1px solid #cbd5e1; padding: 15px 2px; text-align: center; border-radius: 8px; font-weight: bold; font-size: 13px; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
         .chip.selected { border: 2px solid var(--primary); background: #dbeafe; color: var(--primary); }
         .tag-aq { display: block; font-size: 10px; color: #64748b; font-weight: normal; margin-top: 3px; min-height: 12px; }
-
-        /* Modal (Desplegable) */
         #modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; justify-content: center; align-items: center; }
         .modal-box { background: white; padding: 25px; border-radius: 20px; width: 80%; max-width: 320px; text-align: center; }
         .opt-btn { display: block; width: 100%; padding: 15px; margin: 10px 0; border: 1px solid #ddd; border-radius: 12px; font-size: 16px; font-weight: bold; background: #f8fafc; }
-
-        /* Botones de Guardar */
         input[type="date"] { width: 100%; padding: 12px; box-sizing: border-box; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; }
         .btn-ok { width: 100%; background: #22c55e; color: white; padding: 18px; border: none; border-radius: 12px; font-weight: bold; font-size: 16px; }
         .btn-limpiar { width: 100%; background: #ef4444; color: white; border: none; padding: 10px; border-radius: 8px; margin-top: 10px; font-weight: bold; }
-
-        /* Nav Inferior */
-        nav { position: fixed; bottom: 0; width: 100%; background: white; display: flex; border-top: 2px solid #ddd; height: 70px; }
-        nav button { flex: 1; border: none; background: none; font-weight: bold; color: #64748b; font-size: 12px; }
+        nav { position: fixed; bottom: 0; width: 100%; background: white; display: flex; border-top: 2px solid #ddd; height: 70px; z-index: 100; }
+        nav button { flex: 1; border: none; background: none; font-weight: bold; color: #64748b; font-size: 10px; text-transform: uppercase; }
         nav button.active-nav { color: var(--primary); border-top: 4px solid var(--primary); }
     </style>
 </head>
@@ -78,98 +66,11 @@
         <div id="listaResumen"></div>
     </div>
 
-    <nav>
-        <button onclick="ir('p0')" id="b0" class="active-nav">P0</button>
-        <button onclick="ir('p1')" id="b1">P1</button>
-        <button onclick="ir('p2')" id="b2">P2</button>
-        <button onclick="ir('p3')" id="b3">RESUMEN</button>
-    </nav>
-
-    <script>
-        let seleccionTemporal = [];
-        let tanqueActual = "";
-
-        // Definición manual de tanques para asegurar que aparezcan
-        const tanques = {
-            g0: ["AG01","AG02","AG03","AG04","AG05","AG06","AG07","AG08","AG09","AG10","AG11","AG12","AG13","AG14","AG15","AG16","AG17","AG18","AG19","AG20","AG21","AG22","AG23","AG24"],
-            g1: ["AG25","AG26","AG27","AG28","AG29","AG30","AG31","AG32","AG33","AG34","AG35","AG36","AG37","AG38","AG39","AG40","AG41","AG42","AG43","AG44"],
-            g2: ["AN01","AN02","AN03","AN04","AN05","AN06","AN07","AN08","AN09","AN10","AN11","AN12","AN13","AN14","AN15","AN16","AN17","AN18","AN19","AN20","AN21","AN22","AN23","AN24","AP01","AP02"]
-        };
-
-        function generarTodo() {
-            // Generar cuadrículas
-            Object.keys(tanques).forEach(idGrid => {
-                const contenedor = document.getElementById(idGrid);
-                tanques[idGrid].forEach(nombre => {
-                    const div = document.createElement('div');
-                    div.className = 'chip';
-                    div.id = "c-" + nombre;
-                    div.innerHTML = nombre + `<small class="tag-aq" id="t-${nombre}"></small>`;
-                    div.onclick = () => { tanqueActual = nombre; document.getElementById('modal').style.display='flex'; };
-                    contenedor.appendChild(div);
-                });
-            });
-            // Fecha hoy
-            const hoy = new Date().toISOString().split('T')[0];
-            document.querySelectorAll('input[type="date"]').forEach(inp => inp.value = hoy);
-            actualizarResumen();
-        }
-
-        function seleccionarAQ(valor) {
-            seleccionTemporal = seleccionTemporal.filter(x => x.id !== tanqueActual);
-            seleccionTemporal.push({id: tanqueActual, aq: valor});
-            document.getElementById("c-"+tanqueActual).classList.add('selected');
-            document.getElementById("t-"+tanqueActual).innerText = "AQ X" + valor;
-            cerrarModal();
-        }
-
-        function cerrarModal() { document.getElementById('modal').style.display='none'; }
-
-        function ir(id) {
-            document.querySelectorAll('.tab-content').forEach(x => x.classList.remove('active'));
-            document.querySelectorAll('nav button').forEach(x => x.classList.remove('active-nav'));
-            document.getElementById(id).classList.add('active');
-            document.getElementById('b' + id.slice(1)).classList.add('active-nav');
-            if(id === 'p3') actualizarResumen();
-        }
-
-        function limpiar() {
-            seleccionTemporal = [];
-            document.querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
-            document.querySelectorAll('.tag-aq').forEach(t => t.innerText = "");
-        }
-
-        function guardar() {
-            if(seleccionTemporal.length === 0) return alert("Selecciona tanques");
-            const fechaIn = document.querySelector('.active input[type="date"]').value;
-            let db = JSON.parse(localStorage.getItem('db_aq_v5') || '[]');
-            
-            seleccionTemporal.forEach(item => {
-                let fF = new Date(fechaIn);
-                fF.setDate(fF.getDate() + (item.aq - 1));
-                db.push({ n: item.id, q: "AQ X"+item.aq, i: fechaIn, f: fF.toISOString().split('T')[0] });
-            });
-            
-            localStorage.setItem('db_aq_v5', JSON.stringify(db));
-            alert("Guardado!");
-            limpiar();
-        }
-
-        function actualizarResumen() {
-            const listado = document.getElementById('listaResumen');
-            const hoy = new Date(); hoy.setHours(0,0,0,0);
-            let db = JSON.parse(localStorage.getItem('db_aq_v5') || '[]');
-            db = db.filter(x => new Date(x.f) >= hoy);
-            
-            listado.innerHTML = db.length ? "" : "No hay tanques activos.";
-            db.forEach(r => {
-                const diff = Math.ceil((new Date(r.f) - hoy) / 86400000);
-                listado.innerHTML += `<div style="background:white; margin-bottom:10px; padding:10px; border-radius:8px; border-left:5px solid green;">
-                    <b>${r.n}</b> (${r.q}) <span style="float:right; color:blue; font-weight:bold;">${diff === 0 ? 'HOY' : diff+'d'}</span><br>
-                    <small>Termina: ${r.f}</small>
-                </div>`;
-            });
-        }
-    </script>
-</body>
-</html>
+    <div id="historico" class="tab-content">
+        <h2>HISTÓRICO</h2>
+        <div style="background: white; padding: 15px; border-radius: 12px; margin-bottom: 15px;">
+            <div style="display: flex; gap: 5px; margin-bottom: 10px;">
+                <input type="date" id="histDesde">
+                <input type="date" id="histHasta">
+            </div>
+            <button class="btn-ok" onclick="filtrarHistorial()" style="background:#3b82f6; padding:12px;">BUSCAR
