@@ -3,84 +3,162 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>APP TANQUES</title>
+    <title>Control de Tanques v4</title>
     <style>
-        body { font-family: sans-serif; background: #f0f2f5; margin: 0; padding-bottom: 80px; }
+        :root { --blue: #007bff; --green: #28a745; --bg: #f4f7f6; --text: #333; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding-bottom: 90px; }
+        
+        /* Pestañas */
         .tab-content { display: none; padding: 15px; }
         .active { display: block; }
-        h2 { color: #1a73e8; font-size: 1.1rem; border-bottom: 1px solid #ccc; }
-        
-        /* Grilla */
-        .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 15px 0; }
-        .chip { background: white; border: 1px solid #bbb; padding: 15px 2px; text-align: center; border-radius: 8px; font-weight: bold; font-size: 12px; }
-        .chip.selected { background: #e8f0fe; border: 2px solid #1a73e8; color: #1a73e8; }
-        .tag { display: block; font-size: 9px; color: #555; height: 10px; }
+        h2 { font-size: 1.2rem; color: var(--blue); border-bottom: 2px solid #ddd; padding-bottom: 5px; margin-top: 0; }
 
-        /* Modal */
-        #modal { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.8); z-index: 999; justify-content: center; align-items: center; }
-        .m-box { background: white; padding: 20px; border-radius: 15px; width: 80%; text-align: center; }
-        .m-btn { display: block; width: 100%; padding: 15px; margin: 10px 0; border: 1px solid #ddd; border-radius: 10px; font-weight: bold; background: #f8f9fa; }
+        /* Grilla de Casillas */
+        .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 15px 0; }
+        .chip { background: white; border: 1px solid #ccc; padding: 12px 2px; text-align: center; border-radius: 8px; font-weight: bold; font-size: 12px; transition: 0.2s; position: relative; }
+        .chip.selected { background: #e7f3ff; border: 2px solid var(--blue); color: var(--blue); }
+        .chip small { display: block; font-size: 9px; color: #666; font-weight: normal; }
 
-        /* Botones */
-        input[type="date"] { width: 100%; padding: 12px; box-sizing: border-box; margin-bottom: 10px; border-radius: 8px; border: 1px solid #ccc; }
-        .btn-ok { width: 100%; background: #28a745; color: white; padding: 15px; border: none; border-radius: 10px; font-weight: bold; margin-top: 10px; }
-        .btn-del { width: 100%; background: #dc3545; color: white; padding: 10px; border: none; border-radius: 10px; margin-top: 5px; }
+        /* Modal / Menú AQ */
+        #modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; justify-content: center; align-items: center; }
+        .modal-box { background: white; padding: 25px; border-radius: 20px; width: 85%; max-width: 320px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+        .m-btn { display: block; width: 100%; padding: 15px; margin: 10px 0; border: 2px solid #eee; border-radius: 12px; font-size: 1.1rem; font-weight: bold; background: #f8fafc; cursor: pointer; }
+        .m-btn:active { background: var(--blue); color: white; }
+
+        /* Controles */
+        input[type="date"] { width: 100%; padding: 12px; box-sizing: border-box; margin: 10px 0; border: 1px solid #ccc; border-radius: 8px; font-size: 1rem; }
+        .btn-ok { width: 100%; background: var(--green); color: white; padding: 18px; border: none; border-radius: 12px; font-weight: bold; font-size: 1rem; margin-top: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .btn-ok:active { transform: scale(0.98); }
+        .btn-clear { width: 100%; background: #6c757d; color: white; border: none; padding: 10px; border-radius: 8px; margin-top: 10px; }
 
         /* Resumen */
-        .card { background: white; padding: 10px; margin-bottom: 8px; border-radius: 8px; border-left: 5px solid #28a745; position: relative; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        .dias { position: absolute; top: 10px; right: 10px; font-weight: bold; color: #1a73e8; font-size: 0.8rem; }
+        .card { background: white; padding: 15px; margin-bottom: 10px; border-radius: 12px; border-left: 6px solid var(--green); position: relative; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .card-days { position: absolute; top: 15px; right: 15px; font-weight: bold; color: var(--blue); background: #eef6ff; padding: 4px 8px; border-radius: 6px; font-size: 0.8rem; }
+        .card.expired { border-left-color: #ccc; opacity: 0.7; }
 
-        /* Nav */
-        nav { position: fixed; bottom: 0; width: 100%; background: white; display: flex; border-top: 1px solid #ddd; }
-        nav button { flex: 1; padding: 20px 5px; border: none; background: none; font-weight: bold; color: #666; font-size: 0.7rem; }
-        nav button.active-nav { color: #1a73e8; border-top: 3px solid #1a73e8; }
+        /* Navegación Inferior */
+        nav { position: fixed; bottom: 0; width: 100%; background: white; display: flex; border-top: 1px solid #ddd; height: 75px; z-index: 500; }
+        nav button { flex: 1; border: none; background: none; font-weight: bold; color: #64748b; font-size: 0.75rem; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        nav button.active-nav { color: var(--blue); border-top: 4px solid var(--blue); background: #f8fafc; }
     </style>
 </head>
-<body>
+<body onload="init()">
 
     <div id="modal">
-        <div class="m-box">
-            <h3>DURACIÓN AQ</h3>
-            <button class="m-btn" onclick="setM(1)">AQ X1</button>
-            <button class="m-btn" onclick="setM(3)">AQ X3</button>
-            <button class="m-btn" onclick="setM(5)">AQ X5</button>
-            <button onclick="cerrar()" style="color:red; border:none; background:none; margin-top:10px;">CANCELAR</button>
+        <div class="modal-box">
+            <h3 style="margin-top:0">Seleccionar Duración</h3>
+            <button class="m-btn" onclick="seleccionarX(1)">AQ X1 (1 día)</button>
+            <button class="m-btn" onclick="seleccionarX(3)">AQ X3 (3 días)</button>
+            <button class="m-btn" onclick="seleccionarX(5)">AQ X5 (5 días)</button>
+            <button onclick="cerrarModal()" style="color:red; border:none; background:none; margin-top:15px; font-weight:bold;">CANCELAR</button>
         </div>
     </div>
 
     <div id="p0" class="tab-content active">
-        <h2>P0: AG01-AG24</h2>
-        <input type="date" id="d0">
-        <div id="g0" class="grid"></div>
-        <button class="btn-ok" onclick="enviar()">INSERTAR DATO</button>
-        <button class="btn-del" onclick="borrar()">LIMPIAR SELECCIÓN</button>
+        <h2>P0: AG01 al AG24</h2>
+        <input type="date" id="date0">
+        <div id="grid0" class="grid"></div>
+        <button class="btn-ok" onclick="guardarDatos()">INSERTAR DATO (OK)</button>
+        <button class="btn-clear" onclick="limpiarSeleccion()">Borrar Selección</button>
     </div>
 
     <div id="p1" class="tab-content">
-        <h2>P1: AG25-AG44</h2>
-        <input type="date" id="d1">
-        <div id="g1" class="grid"></div>
-        <button class="btn-ok" onclick="enviar()">INSERTAR DATO</button>
-        <button class="btn-del" onclick="borrar()">LIMPIAR SELECCIÓN</button>
+        <h2>P1: AG25 al AG44</h2>
+        <input type="date" id="date1">
+        <div id="grid1" class="grid"></div>
+        <button class="btn-ok" onclick="guardarDatos()">INSERTAR DATO (OK)</button>
+        <button class="btn-clear" onclick="limpiarSeleccion()">Borrar Selección</button>
     </div>
 
     <div id="p2" class="tab-content">
-        <h2>P2: AN/AP</h2>
-        <input type="date" id="d2">
-        <div id="g2" class="grid"></div>
-        <button class="btn-ok" onclick="enviar()">INSERTAR DATO</button>
-        <button class="btn-del" onclick="borrar()">LIMPIAR SELECCIÓN</button>
+        <h2>P2: AN01-24 / AP01-02</h2>
+        <input type="date" id="date2">
+        <div id="grid2" class="grid"></div>
+        <button class="btn-ok" onclick="guardarDatos()">INSERTAR DATO (OK)</button>
+        <button class="btn-clear" onclick="limpiarSeleccion()">Borrar Selección</button>
     </div>
 
     <div id="p3" class="tab-content">
-        <h2>P3: RESUMEN</h2>
-        <div style="background:white; padding:10px; border-radius:10px;">
-            Desde: <input type="date" id="f1" style="width:40%"> 
-            Hasta: <input type="date" id="f2" style="width:40%">
-            <button onclick="dibujarResumen()" style="width:100%; padding:10px; background:#666; color:white; border:none; border-radius:5px;">BUSCAR</button>
+        <h2>P3: Resumen Actualizado</h2>
+        <div style="background:white; padding:15px; border-radius:12px; margin-bottom:15px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <span>Desde: <input type="date" id="fDesde" style="width:100px; padding:5px;"></span>
+                <span>Hasta: <input type="date" id="fHasta" style="width:100px; padding:5px;"></span>
+            </div>
+            <button onclick="dibujarResumen()" style="width:100%; padding:10px; background:var(--blue); color:white; border:none; border-radius:8px; font-weight:bold;">BUSCAR / FILTRAR</button>
         </div>
-        <div id="res" style="margin-top:15px;"></div>
+        <div id="listaResumen"></div>
     </div>
 
     <nav>
-        <button onclick="tab('p0')" id="b0" class="
+        <button onclick="cambiarTab('p0')" id="b0" class="active-nav"><span>P0</span><small>AG01-24</small></button>
+        <button onclick="cambiarTab('p1')" id="b1"><span>P1</span><small>AG25-44</small></button>
+        <button onclick="cambiarTab('p2')" id="b2"><span>P2</span><small>AN/AP</small></button>
+        <button onclick="cambiarTab('p3')" id="b3"><span>RES</span><small>Resumen</small></button>
+    </nav>
+
+    <script>
+        let temporal = []; // Guarda {id: "AG01", x: 3}
+        let tanqueActual = null;
+
+        const config = {
+            grid0: Array.from({length: 24}, (_,i) => "AG"+(i+1).toString().padStart(2,'0')),
+            grid1: Array.from({length: 20}, (_,i) => "AG"+(i+25).toString().padStart(2,'0')),
+            grid2: [...Array.from({length: 24}, (_,i) => "AN"+(i+1).toString().padStart(2,'0')), "AP01", "AP02"]
+        };
+
+        function init() {
+            // Generar cuadrículas
+            Object.keys(config).forEach(gid => {
+                const box = document.getElementById(gid);
+                config[gid].forEach(name => {
+                    const d = document.createElement('div');
+                    d.className = 'chip';
+                    d.id = "c-"+name;
+                    d.innerHTML = `<span>${name}</span><small id="tag-${name}"></small>`;
+                    d.onclick = () => { tanqueActual = name; document.getElementById('modal').style.display='flex'; };
+                    box.appendChild(d);
+                });
+            });
+            // Fecha hoy por defecto
+            const hoy = new Date().toISOString().split('T')[0];
+            document.querySelectorAll('input[type="date"]').forEach(inp => inp.value = hoy);
+            dibujarResumen();
+        }
+
+        function cerrarModal() { document.getElementById('modal').style.display='none'; }
+
+        function seleccionarX(valor) {
+            temporal = temporal.filter(t => t.id !== tanqueActual); // Evita duplicados
+            temporal.push({id: tanqueActual, x: valor});
+            
+            document.getElementById("c-"+tanqueActual).classList.add('selected');
+            document.getElementById("tag-"+tanqueActual).innerText = "AQ X" + valor;
+            cerrarModal();
+        }
+
+        function cambiarTab(id) {
+            document.querySelectorAll('.tab-content').forEach(x => x.classList.remove('active'));
+            document.querySelectorAll('nav button').forEach(x => x.classList.remove('active-nav'));
+            document.getElementById(id).classList.add('active');
+            document.getElementById('b'+id.slice(1)).classList.add('active-nav');
+            if(id === 'p3') dibujarResumen();
+        }
+
+        function limpiarSeleccion() {
+            temporal = [];
+            document.querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
+            document.querySelectorAll('.chip small').forEach(s => s.innerText = "");
+        }
+
+        function guardarDatos() {
+            if(temporal.length === 0) return alert("Selecciona primero los tanques y su AQ");
+            
+            const tabActiva = document.querySelector('.tab-content.active').id;
+            const fechaInicio = document.querySelector(`#${tabActiva} input[type="date"]`).value;
+            
+            let database = JSON.parse(localStorage.getItem('tanques_vFinal') || '[]');
+            
+            temporal.forEach(item => {
+                let fF = new Date(fechaInicio);
+                fF.setDate(fF.getDate() +
