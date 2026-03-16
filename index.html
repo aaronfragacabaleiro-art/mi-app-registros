@@ -99,43 +99,7 @@
     <script>
         let temp = [];
         let actual = "";
+        
+        // INTERCAMBIO REALIZADO AQUÍ:
         const tanques = {
-            // Se han intercambiado los arreglos entre g0 y g1
-            g0: Array.from({length: 20}, (_,i) => "AG"+(i+25).toString().padStart(2,'0')),
-            g1: Array.from({length: 24}, (_,i) => "AG"+(i+1).toString().padStart(2,'0')),
-            g2: [
-                ...Array.from({length: 24}, (_,i) => "AN"+(i+1).toString().padStart(2,'0')), 
-                ...Array.from({length: 20}, (_,i) => "AP"+(i+1).toString().padStart(2,'0'))
-            ]
-        };
-
-        function iniciar() {
-            Object.keys(tanques).forEach(gridId => {
-                const box = document.getElementById(gridId);
-                tanques[gridId].forEach(name => {
-                    const div = document.createElement('div');
-                    div.className = 'chip'; div.id = "c-"+name;
-                    div.innerHTML = name + `<small class="tag-aq" id="t-${name}"></small>`;
-                    div.onclick = () => { actual = name; document.getElementById('mt').innerText="Tanque "+name; document.getElementById('modal').style.display='flex'; };
-                    box.appendChild(div);
-                });
-            });
-            const hoy = new Date().toISOString().split('T')[0];
-            document.querySelectorAll('input[type="date"]').forEach(i => i.value = hoy);
-            actualizarResumen();
-        }
-
-        function ir(id) {
-            document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
-            document.querySelectorAll('nav button').forEach(x => x.classList.remove('act'));
-            document.getElementById(id).classList.add('active');
-            document.getElementById('b'+id.slice(1)).classList.add('act');
-            if(id === 'p3') actualizarResumen();
-        }
-
-        function cerrar() { document.getElementById('modal').style.display = 'none'; }
-
-        function setAQ(v) {
-            temp = temp.filter(x => x.id !== actual);
-            temp.push({id: actual, v: v});
-            document.getElementById("c-"+actual).classList.add('sel');
+            g0: Array.from({length: 20}, (_,i) => "AG"+(i+
