@@ -53,14 +53,14 @@
     </div>
 
     <div id="p0" class="tab active">
-        <h2>P0: AG01 - AG24</h2>
+        <h2>P0: AG25 - AG44</h2>
         <input type="date" id="date0">
         <div id="g0" class="grid"></div>
         <button class="btn-ok" onclick="guardar()">INSERTAR DATOS (OK)</button>
     </div>
 
     <div id="p1" class="tab">
-        <h2>P1: AG25 - AG44</h2>
+        <h2>P1: AG01 - AG24</h2>
         <input type="date" id="date1">
         <div id="g1" class="grid"></div>
         <button class="btn-ok" onclick="guardar()">INSERTAR DATOS (OK)</button>
@@ -100,8 +100,9 @@
         let temp = [];
         let actual = "";
         const tanques = {
-            g0: Array.from({length: 24}, (_,i) => "AG"+(i+1).toString().padStart(2,'0')),
-            g1: Array.from({length: 20}, (_,i) => "AG"+(i+25).toString().padStart(2,'0')),
+            // Se han intercambiado los arreglos entre g0 y g1
+            g0: Array.from({length: 20}, (_,i) => "AG"+(i+25).toString().padStart(2,'0')),
+            g1: Array.from({length: 24}, (_,i) => "AG"+(i+1).toString().padStart(2,'0')),
             g2: [
                 ...Array.from({length: 24}, (_,i) => "AN"+(i+1).toString().padStart(2,'0')), 
                 ...Array.from({length: 20}, (_,i) => "AP"+(i+1).toString().padStart(2,'0'))
@@ -138,58 +139,3 @@
             temp = temp.filter(x => x.id !== actual);
             temp.push({id: actual, v: v});
             document.getElementById("c-"+actual).classList.add('sel');
-            document.getElementById("t-"+actual).innerText = "AQ X" + v;
-            cerrar();
-        }
-
-        function guardar() {
-            if(temp.length === 0) return alert("Selecciona tanques");
-            const fecha = document.querySelector('.active input[type="date"]').value;
-            let db = JSON.parse(localStorage.getItem('aq_db_pro') || '[]');
-            temp.forEach(item => {
-                let fF = new Date(fecha); fF.setDate(fF.getDate() + (item.v - 1));
-                db.push({ idUnique: Date.now() + Math.random(), n: item.id, q: item.v, i: fecha, f: fF.toISOString().split('T')[0] });
-            });
-            localStorage.setItem('aq_db_pro', JSON.stringify(db));
-            alert("¡Guardado!");
-            temp = [];
-            document.querySelectorAll('.chip').forEach(c => c.classList.remove('sel'));
-            document.querySelectorAll('.tag-aq').forEach(t => t.innerText = "");
-        }
-
-        function actualizarResumen() {
-            const lista = document.getElementById('resumen-lista');
-            const hoy = new Date(); hoy.setHours(0,0,0,0);
-            let db = JSON.parse(localStorage.getItem('aq_db_pro') || '[]');
-            let activos = db.filter(x => new Date(x.f) >= hoy);
-            lista.innerHTML = activos.length ? "" : "<p style='text-align:center'>Sin activos.</p>";
-            activos.sort((a,b) => new Date(a.f) - new Date(b.f)).forEach(r => {
-                const diff = Math.ceil((new Date(r.f) - hoy) / 86400000);
-                lista.innerHTML += `<div class="card"><span class="dias">${diff === 0 ? 'HOY' : diff+'d'}</span><b>${r.n}</b> (AQ X${r.q})<br><small>Hasta: ${r.f}</small></div>`;
-            });
-        }
-
-        function filtrarHistorico() {
-            const desde = document.getElementById('h-desde').value;
-            const hasta = document.getElementById('h-hasta').value;
-            const listaH = document.getElementById('historico-lista');
-            let db = JSON.parse(localStorage.getItem('aq_db_pro') || '[]');
-            if(!desde || !hasta) return alert("Elige fechas");
-            let filtrados = db.filter(x => x.i >= desde && x.i <= hasta);
-            filtrados.sort((a,b) => new Date(b.i) - new Date(a.i));
-            listaH.innerHTML = filtrados.length ? "" : "<p style='text-align:center'>No hay datos.</p>";
-            filtrados.forEach(r => {
-                listaH.innerHTML += `<div class="card past"><b>${r.n}</b> (AQ X${r.q})<br><small>Fecha: ${r.i}</small><br><button class="del-btn" onclick="eliminarRegistro(${r.idUnique})">Eliminar</button></div>`;
-            });
-        }
-
-        function eliminarRegistro(id) {
-            if(!confirm("¿Borrar este registro?")) return;
-            let db = JSON.parse(localStorage.getItem('aq_db_pro') || '[]');
-            db = db.filter(x => x.idUnique !== id);
-            localStorage.setItem('aq_db_pro', JSON.stringify(db));
-            filtrarHistorico();
-        }
-    </script>
-</body>
-</html>
