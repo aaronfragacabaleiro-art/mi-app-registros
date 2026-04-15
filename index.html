@@ -98,11 +98,8 @@
         };
 
         function iniciar() {
-            // Setear fechas por defecto
             const hoy = new Date().toISOString().split('T')[0];
             document.querySelectorAll('input[type="date"]').forEach(i => i.value = hoy);
-            
-            // Generar botones
             generarGrid('g0'); generarGrid('g1'); generarGrid('g2');
             actualizarResumen();
         }
@@ -131,9 +128,7 @@
         function setAQ(valor) {
             const index = seleccion.findIndex(item => item.t === tanqueActual);
             if(index > -1) seleccion.splice(index, 1);
-            
             seleccion.push({ t: tanqueActual, aq: valor });
-            
             const btn = document.getElementById("btn-" + tanqueActual);
             btn.classList.add('sel');
             document.getElementById("tag-" + tanqueActual).innerText = "AQ X" + valor;
@@ -142,13 +137,10 @@
 
         function guardar() {
             if(seleccion.length === 0) return alert("Selecciona al menos un tanque");
-            
             const fechaInput = document.querySelector('.active input[type="date"]').value;
-            
             seleccion.forEach(item => {
-                const fVence = new Date(fechaInput);
+                const fVence = new Date(fechaInput + 'T00:00:00');
                 fVence.setDate(fVence.getDate() + item.aq);
-                
                 db.push({
                     id: Date.now() + Math.random(),
                     tanque: item.t,
@@ -157,7 +149,6 @@
                     tipo: "AQ X" + item.aq
                 });
             });
-
             localStorage.setItem('tanques_db', JSON.stringify(db));
             alert("Datos guardados");
             seleccion = [];
@@ -179,18 +170,27 @@
         function actualizarResumen() {
             const lista = document.getElementById('resumen-lista');
             lista.innerHTML = "";
-            const hoy = new Date().toISOString().split('T')[0];
             
-            // Solo activos (que no han vencido o vencen hoy)
-            const activos = db.filter(r => r.vence >= hoy).sort((a,b) => a.vence.localeCompare(b.vence));
+            // Obtenemos la fecha de hoy sin horas (medianoche)
+            const ahora = new Date();
+            ahora.setHours(0,0,0,0);
+
+            // Ajuste: Filtramos solo los que vencen en el futuro (fVence > ahora)
+            const activos = db.filter(r => {
+                const fVence = new Date(r.vence + 'T00:00:00');
+                return fVence > ahora;
+            }).sort((a,b) => a.vence.localeCompare(b.vence));
 
             activos.forEach(r => {
-                const dias = Math.ceil((new Date(r.vence) - new Date(hoy)) / (1000*60*60*24));
+                const fVence = new Date(r.vence + 'T00:00:00');
+                const diff = fVence - ahora;
+                const diasRest = Math.ceil(diff / (1000 * 60 * 60 * 24));
+                
                 lista.innerHTML += `
                     <div class="card">
                         <b>${r.tanque}</b> - ${r.tipo}<br>
                         <small>Aplicado: ${r.fecha} | Vence: ${r.vence}</small>
-                        <span class="dias">${dias} d rest.</span>
+                        <span class="dias">${diasRest} d rest.</span>
                     </div>`;
             });
         }
@@ -200,9 +200,7 @@
             const hasta = document.getElementById('h-hasta').value;
             const lista = document.getElementById('historico-lista');
             lista.innerHTML = "";
-
             const filtrados = db.filter(r => (!desde || r.fecha >= desde) && (!hasta || r.fecha <= hasta));
-            
             filtrados.reverse().forEach(r => {
                 lista.innerHTML += `
                     <div class="card past">
