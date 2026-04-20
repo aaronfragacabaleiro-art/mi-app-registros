@@ -5,113 +5,217 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Control Tanques AQ</title>
     <style>
-        :root { --blue: #2563eb; --bg: #f1f5f9; }
-        body { font-family: sans-serif; background: var(--bg); margin: 0; padding-bottom: 80px; }
+        :root { --blue: #2563eb; --bg: #f1f5f9; --text: #1e293b; }
+        body { font-family: sans-serif; background: var(--bg); color: var(--text); margin: 0; padding-bottom: 90px; }
         .tab { display: none; padding: 15px; }
-        .tab.active { display: block; }
+        .active { display: block; }
         .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 20px; }
-        .chip { background: white; border: 1px solid #ccc; padding: 10px 2px; text-align: center; border-radius: 8px; font-weight: bold; font-size: 11px; cursor: pointer; }
+        .chip { background: white; border: 1px solid #ccc; padding: 10px 2px; text-align: center; border-radius: 8px; font-weight: bold; font-size: 11px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); cursor: pointer; }
         .chip.sel { background: #dbeafe; border: 2px solid var(--blue); color: var(--blue); }
-        .btn-ok { width: 100%; background: #22c55e; color: white; padding: 15px; border: none; border-radius: 8px; font-weight: bold; }
-        nav { position: fixed; bottom: 0; width: 100%; background: white; display: flex; border-top: 1px solid #ddd; height: 60px; }
+        .tag-aq { display: block; font-size: 9px; font-weight: normal; color: #666; margin-top: 2px; min-height: 10px; }
+        #modal { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:999; justify-content:center; align-items:center; }
+        .m-box { background: white; padding: 25px; border-radius: 20px; width: 85%; max-width: 320px; text-align: center; }
+        .m-btn { display: block; width: 100%; padding: 15px; margin: 10px 0; border: 1px solid #ddd; border-radius: 12px; font-size: 16px; font-weight: bold; background: #f8fafc; }
+        input[type="date"] { width: 100%; padding: 12px; box-sizing: border-box; margin-bottom: 10px; border-radius: 8px; border: 1px solid #ddd; font-size: 16px; }
+        .btn-ok { width: 100%; background: #22c55e; color: white; padding: 18px; border: none; border-radius: 12px; font-weight: bold; font-size: 16px; }
+        .btn-search { width: 100%; background: var(--blue); color: white; padding: 12px; border: none; border-radius: 8px; font-weight: bold; margin-bottom: 20px; }
+        .card { background: white; padding: 12px; margin-bottom: 8px; border-radius: 10px; border-left: 5px solid #22c55e; position: relative; font-size: 14px; }
+        .card.past { border-left-color: #94a3b8; opacity: 0.8; }
+        .dias { position: absolute; right: 10px; top: 12px; font-weight: bold; color: var(--blue); font-size: 11px; }
+        .del-btn { color: #ef4444; font-size: 11px; font-weight: bold; border: none; background: none; padding: 0; margin-top: 5px; cursor: pointer; }
+        nav { position: fixed; bottom: 0; width: 100%; background: white; display: flex; border-top: 1px solid #ddd; height: 70px; z-index: 100; }
         nav button { flex: 1; border: none; background: none; font-weight: bold; color: #64748b; font-size: 10px; text-transform: uppercase; }
-        nav button.act { color: var(--blue); border-top: 3px solid var(--blue); }
+        nav button.act { color: var(--blue); border-top: 4px solid var(--blue); }
     </style>
 </head>
 <body onload="iniciar()">
 
+    <div id="modal">
+        <div class="m-box">
+            <h3 id="mt" style="margin-top:0">Configurar AQ</h3>
+            <button class="m-btn" onclick="setAQ(1)">AQ X1 (2 días)</button>
+            <button class="m-btn" onclick="setAQ(3)">AQ X3 (4 días)</button>
+            <button class="m-btn" onclick="setAQ(5)">AQ X5 (6 días)</button>
+            <button onclick="cerrar()" style="color:red; border:none; background:none; margin-top:10px; font-weight:bold;">CANCELAR</button>
+        </div>
+    </div>
+
     <div id="p0" class="tab active">
-        <h2>P0: AG25-AG44</h2>
-        <input type="date" id="date0" style="width:100%; padding:10px; margin-bottom:10px;">
+        <h2>P0: AG25 - AG44</h2>
+        <input type="date" id="date0">
         <div id="g0" class="grid"></div>
-        <button class="btn-ok" onclick="guardar('date0')">INSERTAR P0</button>
+        <button class="btn-ok" onclick="guardar()">INSERTAR DATOS (OK)</button>
     </div>
 
     <div id="p1" class="tab">
-        <h2>P1: AG01-AG24</h2>
-        <input type="date" id="date1" style="width:100%; padding:10px; margin-bottom:10px;">
+        <h2>P1: AG01 - AG24</h2>
+        <input type="date" id="date1">
         <div id="g1" class="grid"></div>
-        <button class="btn-ok" onclick="guardar('date1')">INSERTAR P1</button>
+        <button class="btn-ok" onclick="guardar()">INSERTAR DATOS (OK)</button>
     </div>
 
     <div id="p2" class="tab">
         <h2>P2: AN/AP</h2>
-        <input type="date" id="date2" style="width:100%; padding:10px; margin-bottom:10px;">
+        <input type="date" id="date2">
         <div id="g2" class="grid"></div>
-        <button class="btn-ok" onclick="guardar('date2')">INSERTAR P2</button>
+        <button class="btn-ok" onclick="guardar()">INSERTAR DATOS (OK)</button>
     </div>
 
     <div id="p3" class="tab">
-        <h2>RESUMEN</h2>
+        <h2>RESUMEN ACTIVOS</h2>
         <div id="resumen-lista"></div>
     </div>
 
+    <div id="p4" class="tab">
+        <h2>HISTÓRICO</h2>
+        <div style="background:white; padding:15px; border-radius:10px; margin-bottom:15px;">
+            <label>Desde:</label> <input type="date" id="h-desde">
+            <label>Hasta:</label> <input type="date" id="h-hasta">
+            <button class="btn-search" onclick="filtrarHistorico()">BUSCAR REGISTROS</button>
+        </div>
+        <div id="historico-lista"></div>
+    </div>
+
     <nav>
-        <button id="b0" class="act" onclick="ir('p0')">P0</button>
-        <button id="b1" onclick="ir('p1')">P1</button>
-        <button id="b2" onclick="ir('p2')">P2</button>
-        <button id="b3" onclick="ir('p3')">RES</button>
+        <button onclick="ir('p0')" id="b0" class="act">P0</button>
+        <button onclick="ir('p1')" id="b1">P1</button>
+        <button onclick="ir('p2')" id="b2">P2</button>
+        <button onclick="ir('p3')" id="b3">RES</button>
+        <button onclick="ir('p4')" id="b4">HIST</button>
     </nav>
 
     <script>
         let db = JSON.parse(localStorage.getItem('tanques_db')) || [];
         let seleccion = [];
+        let tanqueActual = "";
+
+        const configTanques = {
+            g0: Array.from({length: 20}, (_,i) => "AG"+(i+25)),
+            g1: Array.from({length: 24}, (_,i) => "AG"+(i+1).toString().padStart(2,'0')),
+            g2: [...Array.from({length: 24}, (_,i) => "AN"+(i+1).toString().padStart(2,'0')), 
+                 ...Array.from({length: 20}, (_,i) => "AP"+(i+1).toString().padStart(2,'0'))]
+        };
 
         function iniciar() {
             const hoy = new Date().toISOString().split('T')[0];
-            document.querySelectorAll('input').forEach(i => i.value = hoy);
+            document.querySelectorAll('input[type="date"]').forEach(i => i.value = hoy);
+            generarGrid('g0'); generarGrid('g1'); generarGrid('g2');
+            actualizarResumen();
+        }
+
+        function generarGrid(id) {
+            const container = document.getElementById(id);
+            container.innerHTML = "";
+            configTanques[id].forEach(t => {
+                const div = document.createElement('div');
+                div.className = 'chip';
+                div.id = "btn-" + t;
+                div.innerHTML = `${t}<span class="tag-aq" id="tag-${t}"></span>`;
+                div.onclick = () => abrirModal(t);
+                container.appendChild(div);
+            });
+        }
+
+        function abrirModal(t) {
+            tanqueActual = t;
+            document.getElementById('mt').innerText = "Configurar " + t;
+            document.getElementById('modal').style.display = 'flex';
+        }
+
+        function cerrar() { document.getElementById('modal').style.display = 'none'; }
+
+        function setAQ(valor) {
+            const index = seleccion.findIndex(item => item.t === tanqueActual);
+            if(index > -1) seleccion.splice(index, 1);
+            seleccion.push({ t: tanqueActual, aq: valor });
+            const btn = document.getElementById("btn-" + tanqueActual);
+            btn.classList.add('sel');
+            document.getElementById("tag-" + tanqueActual).innerText = "AQ X" + valor;
+            cerrar();
+        }
+
+        function guardar() {
+            if(seleccion.length === 0) return alert("Selecciona al menos un tanque");
+            const fechaInput = document.querySelector('.active input[type="date"]').value;
             
-            generar('g0', 25, 44, 'AG');
-            generar('g1', 1, 24, 'AG');
-            generar('g2', 1, 24, 'AN');
-        }
-
-        function generar(id, ini, fin, pref) {
-            const cont = document.getElementById(id);
-            for(let i=ini; i<=fin; i++) {
-                let t = pref + String(i).padStart(2,'0');
-                cont.innerHTML += `<div class="chip" id="${t}" onclick="seleccionar('${t}')">${t}</div>`;
-            }
-        }
-
-        function seleccionar(t) {
-            const btn = document.getElementById(t);
-            btn.classList.toggle('sel');
-            if(btn.classList.contains('sel')) seleccion.push(t);
-            else seleccion = seleccion.filter(item => item !== t);
-        }
-
-        function guardar(dateId) {
-            if(seleccion.length === 0) return alert("Selecciona tanques");
-            const fecha = document.getElementById(dateId).value;
-            // Nueva lógica: X1=2d, X3=4d, X5=6d (Sumamos 1, 3, 5 días respectivamente)
-            seleccion.forEach(t => {
-                let d = new Date(fecha+'T00:00:00');
-                d.setDate(d.getDate() + 1); // AQ X1 = 2 días total
-                db.push({ tanque: t, vence: d.toISOString().split('T')[0], tipo: "AQ X1" });
+            // Nueva lógica: X1 -> +1 (dura 2 días), X3 -> +3 (dura 4 días), X5 -> +5 (dura 6 días)
+            const sumas = { 1: 1, 3: 3, 5: 5 }; 
+            
+            seleccion.forEach(item => {
+                let d = new Date(fechaInput + 'T00:00:00');
+                d.setDate(d.getDate() + sumas[item.aq]);
+                
+                db.push({
+                    id: Date.now() + Math.random(),
+                    tanque: item.t,
+                    fecha: fechaInput,
+                    vence: d.toISOString().split('T')[0],
+                    tipo: "AQ X" + item.aq
+                });
             });
             localStorage.setItem('tanques_db', JSON.stringify(db));
-            alert("Guardado");
-            location.reload();
+            alert("Guardado correctamente");
+            seleccion = [];
+            document.querySelectorAll('.chip').forEach(c => {
+                c.classList.remove('sel');
+                c.querySelector('.tag-aq').innerText = "";
+            });
+            actualizarResumen();
         }
 
-        function ir(id) {
+        function ir(tabId) {
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('nav button').forEach(b => b.classList.remove('act'));
-            document.getElementById(id).classList.add('active');
-            document.getElementById('b'+id.replace('p','')).classList.add('act');
-            if(id === 'p3') mostrarResumen();
+            document.getElementById(tabId).classList.add('active');
+            document.getElementById('b' + tabId.replace('p','')).classList.add('act');
+            if(tabId === 'p3') actualizarResumen();
         }
 
-        function mostrarResumen() {
+        function actualizarResumen() {
             const lista = document.getElementById('resumen-lista');
             lista.innerHTML = "";
-            const hoy = new Date().toISOString().split('T')[0];
-            db = db.filter(r => r.vence >= hoy);
+            const hoyStr = new Date().toISOString().split('T')[0];
+
+            db = db.filter(r => r.vence >= hoyStr);
             localStorage.setItem('tanques_db', JSON.stringify(db));
-            db.forEach(r => {
-                lista.innerHTML += `<div style="background:white; padding:10px; margin-bottom:5px;"><b>${r.tanque}</b> - Vence: ${r.vence}</div>`;
+
+            db.sort((a,b) => a.vence.localeCompare(b.vence)).forEach(r => {
+                const fVence = new Date(r.vence + 'T00:00:00');
+                const hoyDate = new Date(hoyStr + 'T00:00:00');
+                const diff = Math.round((fVence - hoyDate) / (86400000)) + 1;
+                
+                lista.innerHTML += `
+                    <div class="card">
+                        <b>${r.tanque}</b> - ${r.tipo}<br>
+                        Vence: ${r.vence}
+                        <span class="dias">${diff} d rest.</span>
+                    </div>`;
             });
+        }
+
+        function filtrarHistorico() {
+            const desde = document.getElementById('h-desde').value;
+            const hasta = document.getElementById('h-hasta').value;
+            const lista = document.getElementById('historico-lista');
+            lista.innerHTML = "";
+            const filtrados = db.filter(r => (!desde || r.fecha >= desde) && (!hasta || r.fecha <= hasta));
+            filtrados.reverse().forEach(r => {
+                lista.innerHTML += `
+                    <div class="card past">
+                        <b>${r.tanque}</b> - ${r.tipo}<br>
+                        <small>Fecha: ${r.fecha}</small><br>
+                        <button class="del-btn" onclick="eliminar('${r.id}')">ELIMINAR</button>
+                    </div>`;
+            });
+        }
+
+        function eliminar(id) {
+            if(confirm("¿Eliminar registro?")) {
+                db = db.filter(r => r.id != id);
+                localStorage.setItem('tanques_db', JSON.stringify(db));
+                filtrarHistorico();
+                actualizarResumen();
+            }
         }
     </script>
 </body>
