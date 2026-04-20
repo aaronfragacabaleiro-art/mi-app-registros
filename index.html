@@ -139,7 +139,7 @@
             if(seleccion.length === 0) return alert("Selecciona al menos un tanque");
             const fechaInput = document.querySelector('.active input[type="date"]').value;
             seleccion.forEach(item => {
-                // Se guarda la fecha de vencimiento ajustada a las 00:00
+                // Cálculo estricto a medianoche
                 const fVence = new Date(fechaInput + 'T00:00:00');
                 fVence.setDate(fVence.getDate() + (item.aq - 1));
                 
@@ -152,7 +152,7 @@
                 });
             });
             localStorage.setItem('tanques_db', JSON.stringify(db));
-            alert("Datos guardados");
+            alert("Guardado");
             seleccion = [];
             document.querySelectorAll('.chip').forEach(c => {
                 c.classList.remove('sel');
@@ -173,12 +173,11 @@
             const lista = document.getElementById('resumen-lista');
             lista.innerHTML = "";
             
-            // Obtenemos el inicio del día actual (00:00:00)
+            // Fecha de hoy a las 00:00:00
             const hoy = new Date();
             hoy.setHours(0, 0, 0, 0);
 
-            // Filtramos solo los registros cuyo vencimiento es igual o mayor a HOY
-            // Al ser 00:00, cualquier registro que venció ayer ya no aparecerá hoy.
+            // Filtrado: si la fecha de vencimiento es igual o posterior a hoy (00:00)
             const activos = db.filter(r => {
                 const fVence = new Date(r.vence + 'T00:00:00');
                 return fVence >= hoy;
@@ -186,7 +185,7 @@
 
             activos.forEach(r => {
                 const fVence = new Date(r.vence + 'T00:00:00');
-                // Diferencia en días (ej: Hoy 20 - Vence 20 = 0, +1 = 1 día restante)
+                // Diferencia en días naturales
                 const diff = Math.round((fVence - hoy) / (1000 * 60 * 60 * 24)) + 1;
                 
                 lista.innerHTML += `
