@@ -139,19 +139,20 @@
             if(seleccion.length === 0) return alert("Selecciona al menos un tanque");
             const fechaInput = document.querySelector('.active input[type="date"]').value;
             seleccion.forEach(item => {
-                const fVence = new Date(fechaInput + 'T00:00:00');
-                fVence.setDate(fVence.getDate() + (item.aq - 1));
+                // Cálculo simple: sumamos días al calendario
+                let d = new Date(fechaInput + 'T00:00:00');
+                d.setDate(d.getDate() + (item.aq - 1));
                 
                 db.push({
                     id: Date.now() + Math.random(),
                     tanque: item.t,
                     fecha: fechaInput,
-                    vence: fVence.toISOString().split('T')[0],
+                    vence: d.toISOString().split('T')[0],
                     tipo: "AQ X" + item.aq
                 });
             });
             localStorage.setItem('tanques_db', JSON.stringify(db));
-            alert("Datos guardados");
+            alert("Guardado");
             seleccion = [];
             document.querySelectorAll('.chip').forEach(c => {
                 c.classList.remove('sel');
@@ -171,24 +172,22 @@
         function actualizarResumen() {
             const lista = document.getElementById('resumen-lista');
             lista.innerHTML = "";
-            const hoy = new Date();
-            hoy.setHours(0,0,0,0);
+            const hoyStr = new Date().toISOString().split('T')[0];
 
-            const activos = db.filter(r => {
-                const fVence = new Date(r.vence + 'T00:00:00');
-                return fVence >= hoy;
-            }).sort((a,b) => a.vence.localeCompare(b.vence));
+            // Filtro radical: Si la fecha vence es menor a HOY, no existe.
+            db = db.filter(r => r.vence >= hoyStr);
+            localStorage.setItem('tanques_db', JSON.stringify(db));
 
-            activos.forEach(r => {
+            db.sort((a,b) => a.vence.localeCompare(b.vence)).forEach(r => {
+                const hoy = new Date(hoyStr + 'T00:00:00');
                 const fVence = new Date(r.vence + 'T00:00:00');
-                const diffTime = fVence - hoy;
-                const diasRest = Math.round(diffTime / (1000 * 60 * 60 * 24)) + 1;
+                const diff = Math.round((fVence - hoy) / (1000 * 60 * 60 * 24)) + 1;
                 
                 lista.innerHTML += `
                     <div class="card">
                         <b>${r.tanque}</b> - ${r.tipo}<br>
-                        <small>Vence: ${r.vence}</small>
-                        <span class="dias">${diasRest} d rest.</span>
+                        Vence: ${r.vence}
+                        <span class="dias">${diff} d rest.</span>
                     </div>`;
             });
         }
@@ -210,7 +209,7 @@
         }
 
         function eliminar(id) {
-            if(confirm("¿Eliminar este registro?")) {
+            if(confirm("¿Eliminar registro?")) {
                 db = db.filter(r => r.id != id);
                 localStorage.setItem('tanques_db', JSON.stringify(db));
                 filtrarHistorico();
