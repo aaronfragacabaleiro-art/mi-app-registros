@@ -139,9 +139,7 @@
             if(seleccion.length === 0) return alert("Selecciona al menos un tanque");
             const fechaInput = document.querySelector('.active input[type="date"]').value;
             seleccion.forEach(item => {
-                // LÓGICA DE DÍAS: 
-                // Un AQ X1 insertado hoy (día 20) debe vencer hoy (día 20). 
-                // Por eso sumamos (valor - 1).
+                // Se guarda la fecha de vencimiento ajustada a las 00:00
                 const fVence = new Date(fechaInput + 'T00:00:00');
                 fVence.setDate(fVence.getDate() + (item.aq - 1));
                 
@@ -174,24 +172,28 @@
         function actualizarResumen() {
             const lista = document.getElementById('resumen-lista');
             lista.innerHTML = "";
+            
+            // Obtenemos el inicio del día actual (00:00:00)
             const hoy = new Date();
-            hoy.setHours(0,0,0,0);
+            hoy.setHours(0, 0, 0, 0);
 
-            // Filtramos activos: vencimiento igual o mayor a hoy
+            // Filtramos solo los registros cuyo vencimiento es igual o mayor a HOY
+            // Al ser 00:00, cualquier registro que venció ayer ya no aparecerá hoy.
             const activos = db.filter(r => {
-                return new Date(r.vence + 'T00:00:00') >= hoy;
+                const fVence = new Date(r.vence + 'T00:00:00');
+                return fVence >= hoy;
             }).sort((a,b) => a.vence.localeCompare(b.vence));
 
             activos.forEach(r => {
                 const fVence = new Date(r.vence + 'T00:00:00');
-                // Diferencia en días: (Vencimiento - Hoy) + 1 para incluir el día actual
-                const diff = Math.ceil((fVence - hoy) / (1000 * 60 * 60 * 24)) + 1;
+                // Diferencia en días (ej: Hoy 20 - Vence 20 = 0, +1 = 1 día restante)
+                const diff = Math.round((fVence - hoy) / (1000 * 60 * 60 * 24)) + 1;
                 
                 lista.innerHTML += `
                     <div class="card">
                         <b>${r.tanque}</b> - ${r.tipo}<br>
                         <small>Vence: ${r.vence}</small>
-                        <span class="dias">${diff} d rest.</span>
+                        <span class="dias">${diff} día(s)</span>
                     </div>`;
             });
         }
