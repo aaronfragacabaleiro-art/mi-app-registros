@@ -16,7 +16,6 @@
         #modal { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:999; justify-content:center; align-items:center; }
         .m-box { background: white; padding: 25px; border-radius: 20px; width: 85%; max-width: 320px; text-align: center; }
         .m-btn { display: block; width: 100%; padding: 15px; margin: 10px 0; border: 1px solid #ddd; border-radius: 12px; font-size: 16px; font-weight: bold; background: #f8fafc; }
-        label { display: block; font-size: 12px; font-weight: bold; margin-bottom: 5px; color: #64748b; }
         input[type="date"] { width: 100%; padding: 12px; box-sizing: border-box; margin-bottom: 10px; border-radius: 8px; border: 1px solid #ddd; font-size: 16px; }
         .btn-ok { width: 100%; background: #22c55e; color: white; padding: 18px; border: none; border-radius: 12px; font-weight: bold; font-size: 16px; }
         .btn-search { width: 100%; background: var(--blue); color: white; padding: 12px; border: none; border-radius: 8px; font-weight: bold; margin-bottom: 20px; }
@@ -98,6 +97,7 @@
         };
 
         function iniciar() {
+            // Obtenemos fecha formato YYYY-MM-DD sin usar objetos Date para evitar zonas horarias
             const hoy = new Date().toISOString().split('T')[0];
             document.querySelectorAll('input[type="date"]').forEach(i => i.value = hoy);
             generarGrid('g0'); generarGrid('g1'); generarGrid('g2');
@@ -138,8 +138,9 @@
         function guardar() {
             if(seleccion.length === 0) return alert("Selecciona al menos un tanque");
             const fechaInput = document.querySelector('.active input[type="date"]').value;
+            
             seleccion.forEach(item => {
-                // Cálculo simple: sumamos días al calendario
+                // Sumamos días usando el formato YYYY-MM-DD
                 let d = new Date(fechaInput + 'T00:00:00');
                 d.setDate(d.getDate() + (item.aq - 1));
                 
@@ -152,7 +153,7 @@
                 });
             });
             localStorage.setItem('tanques_db', JSON.stringify(db));
-            alert("Guardado");
+            alert("Guardado correctamente");
             seleccion = [];
             document.querySelectorAll('.chip').forEach(c => {
                 c.classList.remove('sel');
@@ -172,16 +173,20 @@
         function actualizarResumen() {
             const lista = document.getElementById('resumen-lista');
             lista.innerHTML = "";
+            
+            // HOY como texto plano YYYY-MM-DD
             const hoyStr = new Date().toISOString().split('T')[0];
 
-            // Filtro radical: Si la fecha vence es menor a HOY, no existe.
+            // Filtro estricto: vences hoy o después? Te quedas. Venciste ayer? Fuera.
             db = db.filter(r => r.vence >= hoyStr);
             localStorage.setItem('tanques_db', JSON.stringify(db));
 
+            // Ordenar por fecha y pintar
             db.sort((a,b) => a.vence.localeCompare(b.vence)).forEach(r => {
-                const hoy = new Date(hoyStr + 'T00:00:00');
+                // Cálculo simple de días restantes
                 const fVence = new Date(r.vence + 'T00:00:00');
-                const diff = Math.round((fVence - hoy) / (1000 * 60 * 60 * 24)) + 1;
+                const hoyDate = new Date(hoyStr + 'T00:00:00');
+                const diff = Math.round((fVence - hoyDate) / (86400000)) + 1;
                 
                 lista.innerHTML += `
                     <div class="card">
@@ -209,7 +214,7 @@
         }
 
         function eliminar(id) {
-            if(confirm("¿Eliminar registro?")) {
+            if(confirm("¿Eliminar este registro?")) {
                 db = db.filter(r => r.id != id);
                 localStorage.setItem('tanques_db', JSON.stringify(db));
                 filtrarHistorico();
