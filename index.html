@@ -2,103 +2,77 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Control Tanques AQ</title>
     <style>
-        :root { --blue: #2563eb; --bg: #f1f5f9; --text: #1e293b; }
-        body { font-family: sans-serif; background: var(--bg); color: var(--text); margin: 0; padding-bottom: 90px; }
-        .tab { display: none; padding: 15px; }
+        body { font-family: sans-serif; background: #f1f5f9; margin: 0; padding-bottom: 80px; }
+        
+        /* Sistema de pestañas: ocultas por defecto */
+        .tab { display: none; padding: 20px; }
         .tab.active { display: block; }
-        .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 20px; }
-        .chip { background: white; border: 1px solid #ccc; padding: 10px 2px; text-align: center; border-radius: 8px; font-weight: bold; font-size: 11px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); cursor: pointer; }
-        .chip.sel { background: #dbeafe; border: 2px solid var(--blue); color: var(--blue); }
-        .tag-aq { display: block; font-size: 9px; font-weight: normal; color: #666; margin-top: 2px; min-height: 10px; }
-        #modal { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:999; justify-content:center; align-items:center; }
-        .m-box { background: white; padding: 25px; border-radius: 20px; width: 85%; max-width: 320px; text-align: center; }
-        .m-btn { display: block; width: 100%; padding: 15px; margin: 10px 0; border: 1px solid #ddd; border-radius: 12px; font-size: 16px; font-weight: bold; background: #f8fafc; }
-        input[type="date"] { width: 100%; padding: 12px; box-sizing: border-box; margin-bottom: 10px; border-radius: 8px; border: 1px solid #ddd; font-size: 16px; }
-        .btn-ok { width: 100%; background: #22c55e; color: white; padding: 18px; border: none; border-radius: 12px; font-weight: bold; font-size: 16px; }
-        .card { background: white; padding: 12px; margin-bottom: 8px; border-radius: 10px; border-left: 5px solid #22c55e; position: relative; font-size: 14px; }
-        .dias { position: absolute; right: 10px; top: 12px; font-weight: bold; color: var(--blue); font-size: 11px; }
-        nav { position: fixed; bottom: 0; width: 100%; background: white; display: flex; border-top: 1px solid #ddd; height: 70px; z-index: 100; }
-        nav button { flex: 1; border: none; background: none; font-weight: bold; color: #64748b; font-size: 10px; text-transform: uppercase; cursor: pointer; }
-        nav button.act { color: var(--blue); border-top: 4px solid var(--blue); }
+        
+        /* Navegación fija abajo */
+        nav { position: fixed; bottom: 0; width: 100%; background: white; display: flex; border-top: 2px solid #ddd; height: 60px; }
+        nav button { flex: 1; border: none; background: white; font-weight: bold; color: #64748b; cursor: pointer; }
+        nav button.act { color: #2563eb; border-top: 3px solid #2563eb; }
+        
+        /* Elementos del contenido */
+        .card { background: white; padding: 15px; margin-bottom: 10px; border-radius: 8px; border-left: 5px solid #22c55e; }
+        .btn-guardar { width: 100%; padding: 15px; background: #22c55e; color: white; border: none; border-radius: 8px; font-weight: bold; }
     </style>
 </head>
 <body onload="iniciar()">
 
-    <div id="modal">
-        <div class="m-box">
-            <h3 id="mt" style="margin-top:0">Configurar AQ</h3>
-            <button class="m-btn" onclick="setAQ(1)">AQ X1 (1 día)</button>
-            <button class="m-btn" onclick="setAQ(3)">AQ X3 (3 días)</button>
-            <button class="m-btn" onclick="setAQ(5)">AQ X5 (5 días)</button>
-            <button onclick="cerrar()" style="color:red; border:none; background:none; margin-top:10px; font-weight:bold;">CANCELAR</button>
+    <div id="p0" class="tab active">
+        <h2>Tanques</h2>
+        <input type="date" id="date0" style="width:100%; padding:10px; margin-bottom:10px;">
+        <div id="g0">
+            <button onclick="guardarTanque('AG25')">Guardar AG25</button>
+            <button onclick="guardarTanque('AG26')">Guardar AG26</button>
         </div>
     </div>
 
-    <div id="p0" class="tab active">
-        <h2>P0: Tanques</h2>
-        <input type="date" id="date0">
-        <div id="g0" class="grid"></div>
-        <button class="btn-ok" onclick="guardar()">INSERTAR DATOS</button>
-    </div>
-
     <div id="p3" class="tab">
-        <h2>RESUMEN ACTIVOS</h2>
+        <h2>RESUMEN</h2>
         <div id="resumen-lista"></div>
     </div>
 
     <nav>
-        <button onclick="ir('p0')" id="b0" class="act">P0</button>
-        <button onclick="ir('p3')" id="b3">RES</button>
+        <button id="nav-p0" class="act" onclick="ir('p0')">P0</button>
+        <button id="nav-p3" onclick="ir('p3')">RES</button>
     </nav>
 
     <script>
         let db = JSON.parse(localStorage.getItem('tanques_db')) || [];
-        let seleccion = [];
-        let tanqueActual = "";
 
         function iniciar() {
-            const hoy = new Date().toISOString().split('T')[0];
-            document.getElementById('date0').value = hoy;
-            const g = document.getElementById('g0');
-            for(let i=25; i<=30; i++) {
-                let t = "AG"+i;
-                g.innerHTML += `<div class="chip" id="btn-${t}" onclick="abrirModal('${t}')">${t}<span class="tag-aq" id="tag-${t}"></span></div>`;
-            }
+            const hoy = new Date();
+            const fechaLocal = hoy.getFullYear() + '-' + String(hoy.getMonth() + 1).padStart(2, '0') + '-' + String(hoy.getDate()).padStart(2, '0');
+            document.getElementById('date0').value = fechaLocal;
             actualizarResumen();
         }
 
-        function abrirModal(t) { tanqueActual = t; document.getElementById('modal').style.display = 'flex'; }
-        function cerrar() { document.getElementById('modal').style.display = 'none'; }
-        
-        function setAQ(valor) {
-            seleccion.push({ t: tanqueActual, aq: valor });
-            document.getElementById("btn-" + tanqueActual).classList.add('sel');
-            document.getElementById("tag-" + tanqueActual).innerText = "AQ X" + valor;
-            cerrar();
-        }
-
-        function guardar() {
-            const fechaInput = document.getElementById('date0').value;
-            seleccion.forEach(item => {
-                const f = new Date(fechaInput + 'T00:00:00');
-                f.setDate(f.getDate() + (item.aq - 1));
-                db.push({ tanque: item.t, vence: f.toISOString().split('T')[0], tipo: "AQ X" + item.aq });
-            });
-            localStorage.setItem('tanques_db', JSON.stringify(db));
-            seleccion = [];
-            document.querySelectorAll('.chip').forEach(c => { c.classList.remove('sel'); c.querySelector('.tag-aq').innerText = ""; });
-            alert("Guardado");
-        }
-
-        function ir(tab) {
+        // Función crítica para cambiar pestañas
+        function ir(tabId) {
+            // 1. Ocultar todas las pestañas
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            // 2. Quitar clase activa de botones
             document.querySelectorAll('nav button').forEach(b => b.classList.remove('act'));
-            document.getElementById(tab).classList.add('active');
-            document.getElementById('b' + tab.replace('p','')).classList.add('act');
-            if(tab === 'p3') actualizarResumen();
+            
+            // 3. Mostrar la seleccionada
+            document.getElementById(tabId).classList.add('active');
+            document.getElementById('nav-' + tabId).classList.add('act');
+            
+            // Si es la pestaña de resumen, actualizarla al entrar
+            if(tabId === 'p3') actualizarResumen();
+        }
+
+        function guardarTanque(t) {
+            const fechaInput = document.getElementById('date0').value;
+            db.push({ tanque: t, vence: fechaInput, tipo: "AQ X1" });
+            localStorage.setItem('tanques_db', JSON.stringify(db));
+            alert("Guardado: " + t);
+            actualizarResumen();
         }
 
         function actualizarResumen() {
@@ -110,11 +84,7 @@
             localStorage.setItem('tanques_db', JSON.stringify(db));
 
             db.forEach(r => {
-                const fVence = new Date(r.vence + 'T00:00:00');
-                const hoy = new Date(hoyStr + 'T00:00:00');
-                const diff = Math.round((fVence - hoy) / (1000 * 60 * 60 * 24)) + 1;
-                
-                lista.innerHTML += `<div class="card"><b>${r.tanque}</b> - ${r.tipo}<br>Vence: ${r.vence}<span class="dias">${diff} d rest.</span></div>`;
+                lista.innerHTML += `<div class="card"><b>${r.tanque}</b> - ${r.tipo}<br>Vence: ${r.vence}</div>`;
             });
         }
     </script>
