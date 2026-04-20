@@ -32,9 +32,9 @@
     <div id="modal">
         <div class="m-box">
             <h3 id="mt" style="margin-top:0">Configurar AQ</h3>
-            <button class="m-btn" onclick="setAQ(1)">AQ X1 (2 días)</button>
-            <button class="m-btn" onclick="setAQ(3)">AQ X3 (4 días)</button>
-            <button class="m-btn" onclick="setAQ(5)">AQ X5 (6 días)</button>
+            <button class="m-btn" onclick="setAQ(1)">AQ X1</button>
+            <button class="m-btn" onclick="setAQ(3)">AQ X3</button>
+            <button class="m-btn" onclick="setAQ(5)">AQ X5</button>
             <button onclick="cerrar()" style="color:red; border:none; background:none; margin-top:10px; font-weight:bold;">CANCELAR</button>
         </div>
     </div>
@@ -136,6 +136,7 @@
         function guardar() {
             if(seleccion.length === 0) return alert("Selecciona al menos un tanque");
             const fechaInput = document.querySelector('.active input[type="date"]').value;
+            // Mantenemos la lógica de duración (2, 4, 6 días) pero el texto es limpio
             const sumas = { 1: 1, 3: 3, 5: 5 }; 
             
             seleccion.forEach(item => {
@@ -150,7 +151,7 @@
                 });
             });
             localStorage.setItem('tanques_db', JSON.stringify(db));
-            alert("Guardado correctamente");
+            alert("Guardado");
             seleccion = [];
             document.querySelectorAll('.chip').forEach(c => {
                 c.classList.remove('sel');
