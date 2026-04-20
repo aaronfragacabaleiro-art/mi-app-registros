@@ -8,7 +8,7 @@
         :root { --blue: #2563eb; --bg: #f1f5f9; --text: #1e293b; }
         body { font-family: sans-serif; background: var(--bg); color: var(--text); margin: 0; padding-bottom: 90px; }
         .tab { display: none; padding: 15px; }
-        .active { display: block; }
+        .tab.active { display: block; }
         .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 20px; }
         .chip { background: white; border: 1px solid #ccc; padding: 10px 2px; text-align: center; border-radius: 8px; font-weight: bold; font-size: 11px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); cursor: pointer; }
         .chip.sel { background: #dbeafe; border: 2px solid var(--blue); color: var(--blue); }
@@ -21,7 +21,7 @@
         .card { background: white; padding: 12px; margin-bottom: 8px; border-radius: 10px; border-left: 5px solid #22c55e; position: relative; font-size: 14px; }
         .dias { position: absolute; right: 10px; top: 12px; font-weight: bold; color: var(--blue); font-size: 11px; }
         nav { position: fixed; bottom: 0; width: 100%; background: white; display: flex; border-top: 1px solid #ddd; height: 70px; z-index: 100; }
-        nav button { flex: 1; border: none; background: none; font-weight: bold; color: #64748b; font-size: 10px; text-transform: uppercase; }
+        nav button { flex: 1; border: none; background: none; font-weight: bold; color: #64748b; font-size: 10px; text-transform: uppercase; cursor: pointer; }
         nav button.act { color: var(--blue); border-top: 4px solid var(--blue); }
     </style>
 </head>
@@ -38,10 +38,10 @@
     </div>
 
     <div id="p0" class="tab active">
-        <h2>P0: AG25 - AG44</h2>
+        <h2>P0: Tanques</h2>
         <input type="date" id="date0">
         <div id="g0" class="grid"></div>
-        <button class="btn-ok" onclick="guardar()">INSERTAR DATOS (OK)</button>
+        <button class="btn-ok" onclick="guardar()">INSERTAR DATOS</button>
     </div>
 
     <div id="p3" class="tab">
@@ -62,7 +62,6 @@
         function iniciar() {
             const hoy = new Date().toISOString().split('T')[0];
             document.getElementById('date0').value = hoy;
-            // Generar grids mínimos para probar
             const g = document.getElementById('g0');
             for(let i=25; i<=30; i++) {
                 let t = "AG"+i;
@@ -84,20 +83,21 @@
         function guardar() {
             const fechaInput = document.getElementById('date0').value;
             seleccion.forEach(item => {
-                // AQ X1 = vence hoy, AQ X3 = vence en 2 días (ej: 20, 21, 22)
                 const f = new Date(fechaInput + 'T00:00:00');
                 f.setDate(f.getDate() + (item.aq - 1));
                 db.push({ tanque: item.t, vence: f.toISOString().split('T')[0], tipo: "AQ X" + item.aq });
             });
             localStorage.setItem('tanques_db', JSON.stringify(db));
             seleccion = [];
+            document.querySelectorAll('.chip').forEach(c => { c.classList.remove('sel'); c.querySelector('.tag-aq').innerText = ""; });
             alert("Guardado");
-            actualizarResumen();
         }
 
         function ir(tab) {
-            document.querySelectorAll('.tab').forEach(t => t.style.display = 'none');
-            document.getElementById(tab).style.display = 'block';
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('nav button').forEach(b => b.classList.remove('act'));
+            document.getElementById(tab).classList.add('active');
+            document.getElementById('b' + tab.replace('p','')).classList.add('act');
             if(tab === 'p3') actualizarResumen();
         }
 
@@ -106,14 +106,12 @@
             lista.innerHTML = "";
             const hoyStr = new Date().toISOString().split('T')[0];
 
-            // EL CAMBIO ESTÁ AQUÍ: Comparación más robusta
             db = db.filter(r => r.vence >= hoyStr);
             localStorage.setItem('tanques_db', JSON.stringify(db));
 
             db.forEach(r => {
                 const fVence = new Date(r.vence + 'T00:00:00');
                 const hoy = new Date(hoyStr + 'T00:00:00');
-                // Se asegura que si es hoy, reste 0 y sume 1 (mostrando 1 día)
                 const diff = Math.round((fVence - hoy) / (1000 * 60 * 60 * 24)) + 1;
                 
                 lista.innerHTML += `<div class="card"><b>${r.tanque}</b> - ${r.tipo}<br>Vence: ${r.vence}<span class="dias">${diff} d rest.</span></div>`;
