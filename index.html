@@ -139,14 +139,17 @@
             if(seleccion.length === 0) return alert("Selecciona al menos un tanque");
             const fechaInput = document.querySelector('.active input[type="date"]').value;
             seleccion.forEach(item => {
+                // Sumamos (item.aq - 1) para que el día de hoy ya cuente como 1
                 const fVence = new Date(fechaInput + 'T00:00:00');
-                fVence.setDate(fVence.getDate() + item.aq);
+                fVence.setDate(fVence.getDate() + (item.aq - 1));
+                
                 db.push({
                     id: Date.now() + Math.random(),
                     tanque: item.t,
                     fecha: fechaInput,
                     vence: fVence.toISOString().split('T')[0],
-                    tipo: "AQ X" + item.aq
+                    tipo: "AQ X" + item.aq,
+                    duracion: item.aq
                 });
             });
             localStorage.setItem('tanques_db', JSON.stringify(db));
@@ -170,21 +173,19 @@
         function actualizarResumen() {
             const lista = document.getElementById('resumen-lista');
             lista.innerHTML = "";
-            
-            // Obtenemos la fecha de hoy sin horas (medianoche)
-            const ahora = new Date();
-            ahora.setHours(0,0,0,0);
+            const hoy = new Date();
+            hoy.setHours(0,0,0,0);
 
-            // Ajuste: Filtramos solo los que vencen en el futuro (fVence > ahora)
+            // Filtramos activos: aquellos cuya fecha de vencimiento es >= hoy
             const activos = db.filter(r => {
                 const fVence = new Date(r.vence + 'T00:00:00');
-                return fVence > ahora;
+                return fVence >= hoy;
             }).sort((a,b) => a.vence.localeCompare(b.vence));
 
             activos.forEach(r => {
                 const fVence = new Date(r.vence + 'T00:00:00');
-                const diff = fVence - ahora;
-                const diasRest = Math.ceil(diff / (1000 * 60 * 60 * 24));
+                const diff = fVence - hoy;
+                const diasRest = Math.ceil(diff / (1000 * 60 * 60 * 24)) + 1;
                 
                 lista.innerHTML += `
                     <div class="card">
