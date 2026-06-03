@@ -21,13 +21,16 @@
             });
         });
         
-        // Formato local correcto YYYY-MM-DD sin desfases de zona horaria
         const hoy = obtenerFechaLocalString(new Date());
         document.querySelectorAll('input[type="date"]').forEach(i => i.value = hoy);
+        
+        // Limpiar los filtros de búsqueda al iniciar para que no arrastren valores vacíos incorrectos
+        if(document.getElementById('filtroDesde')) document.getElementById('filtroDesde').value = '';
+        if(document.getElementById('filtroHasta')) document.getElementById('filtroHasta').value = '';
+        
         renderResumen();
     }
 
-    // Función auxiliar crucial para evitar desfases de un día por zonas horarias
     function obtenerFechaLocalString(objetoFecha) {
         const year = objetoFecha.getFullYear();
         const month = String(objetoFecha.getMonth() + 1).padStart(2, '0');
@@ -81,11 +84,9 @@
         let datos = JSON.parse(localStorage.getItem('registrosAQ') || '[]');
         
         tanquesSeleccionados.forEach(t => {
-            // Descomponer la fecha manualmente para evitar desfases horarios de JavaScript
             const partes = fechaInput.split('-');
             let fechaFin = new Date(partes[0], partes[1] - 1, partes[2]);
             
-            // Si es X1 suma 0 días (termina el mismo día), si es X3 suma 2 días, etc.
             fechaFin.setDate(fechaFin.getDate() + (t.multi - 1));
             
             datos.push({
@@ -107,18 +108,20 @@
         const desde = document.getElementById('filtroDesde').value;
         const hasta = document.getElementById('filtroHasta').value;
         
-        // Fecha de hoy limpia a medianoche local
         const hoy = new Date();
         hoy.setHours(0,0,0,0);
 
         let datos = JSON.parse(localStorage.getItem('registrosAQ') || '[]');
         
-        // SOLUCIÓN AL FILTRO: 
-        // Si el usuario usa el buscador, filtramos estrictamente por el rango de fechas que pide.
-        // Si NO usa el buscador, muestra TODO lo que siga vigente hoy o en el futuro.
+        // CORRECCIÓN DEL HISTÓRICO:
+        // Si el usuario define un rango de búsqueda, mostramos TODO lo que se inició o estuvo vigente en ese periodo.
         if (desde && hasta) {
-            datos = datos.filter(d => d.inicio >= desde && d.inicio <= hasta);
+            datos = datos.filter(d => {
+                // El registro entra en el histórico si su fecha de inicio está dentro del rango seleccionado
+                return d.inicio >= desde && d.inicio <= hasta;
+            });
         } else {
+            // Si el buscador está vacío, actúa como monitor en tiempo real: sólo vigentes hoy o a futuro
             datos = datos.filter(d => {
                 const partesFin = d.fin.split('-');
                 const fFin = new Date(partesFin[0], partesFin[1] - 1, partesFin[2]);
@@ -126,15 +129,15 @@
             });
         }
 
-        lista.innerHTML = datos.length ? "" : "No hay registros que coincidan con la búsqueda.";
+        lista.innerHTML = datos.length ? "" : "No se encontraron registros para los criterios seleccionados.";
         
-        // Ordenar de más nuevos a más viejos de expiración
-        datos.sort((a,b) => new Date(a.fin) - new Date(b.fin)).forEach(d => {
+        // Ordenar cronológicamente por fecha de inicio (más recientes primero en el histórico)
+        datos.sort((a,b) => new Date(b.inicio) - new Date(a.inicio)).forEach(d => {
             const partesFin = d.fin.split('-');
             const fFin = new Date(partesFin[0], partesFin[1] - 1, partesFin[2]);
             fFin.setHours(0,0,0,0);
             
-            // Cálculo preciso de días restantes en base a milisegundos netos locales
+            // Cálculo de días relativos respecto a HOY reales
             const diffTime = fFin - hoy;
             const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
             
@@ -142,7 +145,7 @@
             let textoDias = '';
 
             if (diffDays < 0) {
-                claseExpirado = 'expirado';
+                claseExpirado = 'expirado'; // Aplica el estilo rojo tenue de tu CSS
                 textoDias = `Terminado hace ${Math.abs(diffDays)} ${Math.abs(diffDays) === 1 ? 'día' : 'días'}`;
             } else if (diffDays === 0) {
                 textoDias = 'Último día';
