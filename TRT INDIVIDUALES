@@ -84,7 +84,8 @@
         <h2>Resumen e Histórico</h2>
         <div style="margin-bottom:15px; background:white; padding:10px; border-radius:10px;">
             Filtro Histórico: <input type="date" id="filtroDesde" style="width:40%"> a <input type="date" id="filtroHasta" style="width:40%">
-            <button onclick="renderResumen()" style="background:#64748b; color:white; width:100%; margin-top:10px;">BUSCAR EN HISTORIAL</button>
+            <button onclick="buscarEnHistorial()" style="background:#2563eb; color:white; width:100%; margin-top:10px;">BUSCAR EN HISTORIAL</button>
+            <button onclick="limpiarFiltroYVerActivos()" style="background:#64748b; color:white; width:100%; margin-top:5px; padding:8px; font-size:12px;">Ver solo activos de hoy</button>
         </div>
         <div id="listaResumen"></div>
     </div>
@@ -122,8 +123,9 @@
             const hoy = obtenerFechaLocalString(new Date());
             document.querySelectorAll('input[type="date"]').forEach(i => i.value = hoy);
             
-            if(document.getElementById('filtroDesde')) document.getElementById('filtroDesde').value = '';
-            if(document.getElementById('filtroHasta')) document.getElementById('filtroHasta').value = '';
+            // Inicializar filtros vacíos
+            document.getElementById('filtroDesde').value = '';
+            document.getElementById('filtroHasta').value = '';
             
             renderResumen();
         }
@@ -162,7 +164,11 @@
             document.querySelectorAll('nav button').forEach(b => b.classList.remove('active-nav'));
             document.getElementById(tabId).classList.add('active');
             document.getElementById('btn-' + tabId).classList.add('active-nav');
-            if(tabId === 'p3') renderResumen();
+            
+            // Al cambiar de pestaña de forma normal, si hay fechas puestas, respeta el histórico.
+            if(tabId === 'p3') {
+                renderResumen();
+            }
         }
 
         function limpiar() {
@@ -197,10 +203,32 @@
             localStorage.setItem('registrosAQ', JSON.stringify(datos));
             alert("¡Insertado correctamente!");
             limpiar();
+            
+            // Al guardar, limpiamos filtros para ver el estado actual real
+            document.getElementById('filtroDesde').value = '';
+            document.getElementById('filtroHasta').value = '';
             renderResumen();
         }
 
-        function renderResumen() {
+        // Nueva función dedicada exclusivamente a disparar la búsqueda manual
+        function buscarEnHistorial() {
+            const desde = document.getElementById('filtroDesde').value;
+            const hasta = document.getElementById('filtroHasta').value;
+            
+            if (!desde || !hasta) {
+                alert("Por favor, selecciona AMBAS fechas (Desde y Hasta) para buscar en el historial.");
+                return;
+            }
+            renderResumen(true); // Forzamos modo búsqueda
+        }
+
+        function limpiarFiltroYVerActivos() {
+            document.getElementById('filtroDesde').value = '';
+            document.getElementById('filtroHasta').value = '';
+            renderResumen(false);
+        }
+
+        function renderResumen(forzarBusqueda = false) {
             const lista = document.getElementById('listaResumen');
             const desde = document.getElementById('filtroDesde').value;
             const hasta = document.getElementById('filtroHasta').value;
@@ -211,23 +239,25 @@
 
             let datos = JSON.parse(localStorage.getItem('registrosAQ') || '[]');
             
-            // LÓGICA DE FILTRADO CORREGIDA
-            if (desde && hasta) {
-                // Modo Historial: busca cualquier registro que coincida o se cruce con las fechas
+            // FILTRADO ROBUSTO SIN COMPROBACIÓN FANTASMA DE TEXTOS
+            if (forzarBusqueda || (desde && hasta)) {
+                // FILTRO HISTÓRICO REAL: Trae CUALQUIER registro que haya estado vivo o iniciado dentro de ese rango exacto
                 datos = datos.filter(d => {
-                    return (d.inicio >= desde && d.inicio <= hasta) || (d.fin >= desde && d.fin <= hasta);
+                    return (d.inicio >= desde && d.inicio <= hasta) || 
+                           (d.fin >= desde && d.fin <= hasta) ||
+                           (d.inicio <= desde && d.fin >= hasta); // Por si el tratamiento cubre todo tu rango buscado
                 });
             } else {
-                // Modo Monitor Diario: Solo muestra lo que esté activo HOY o en el futuro
+                // MONITOR EN TIEMPO REAL: Si entras de nuevas, solo muestra lo que NO ha vencido todavía hoy
                 datos = datos.filter(d => {
                     return d.fin >= hoyString;
                 });
             }
 
-            lista.innerHTML = datos.length ? "" : "No se encontraron registros activos o históricos en las fechas indicadas.";
+            lista.innerHTML = datos.length ? "" : "No hay registros para mostrar con el criterio seleccionado.";
             
-            // Ordenar por fecha de inicio (más recientes primero)
-            datos.sort((a,b) => b.inicio.localeCompare(a.inicio) || b.fin.localeCompare(a.fin));
+            // Ordenar: Los tratamientos más nuevos en fecha de inicio van arriba del todo
+            datos.sort((a,b) => b.inicio.localeCompare(a.inicio) || b.tanque.localeCompare(a.tanque));
 
             datos.forEach(d => {
                 const pFin = d.fin.split('-');
