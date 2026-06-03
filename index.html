@@ -31,7 +31,7 @@
         .contenedor-columnas { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px; }
         @media (max-width: 600px) { .contenedor-columnas { grid-template-columns: 1fr; } }
         
-        .columna-titulo { font-size: 16px; font-weight: bold; margin-bottom: 10px; padding-bottom: 5px; border-bottom: 2px solid #cbd5e1; }
+        .columna-titulo { font-size: 15px; font-weight: bold; margin-bottom: 10px; padding-bottom: 5px; border-bottom: 2px solid #cbd5e1; }
         .columna-izq .columna-titulo { color: #16a34a; }
         .columna-der .columna-titulo { color: #dc2626; }
 
@@ -97,15 +97,15 @@
         </div>
         
         <div class="contenedor-columnas">
-            <!-- Columna Izquierda: En Vigor -->
+            <!-- Columna Izquierda: Tratamientos Activos -->
             <div class="columna-izq">
-                <div class="columna-titulo">🟢 EN VIGOR</div>
+                <div class="columna-titulo">🟢 TRATAMIENTOS ACTIVOS</div>
                 <div id="listaEnVigor"></div>
             </div>
             
-            <!-- Columna Derecha: Pasados -->
+            <!-- Columna Derecha: Tratamientos Finalizados -->
             <div class="columna-der">
-                <div class="columna-titulo">🔴 PASADOS</div>
+                <div class="columna-titulo">🔴 TRATAMIENTOS FINALIZADOS</div>
                 <div id="listaPasados"></div>
             </div>
         </div>
@@ -122,13 +122,12 @@
         let seleccionTemporal = { id: null, tanque: null, multi: null };
         let tanquesSeleccionados = [];
 
-        // CONFIGURACIÓN CORREGIDA DE LOS TANQUES
         const config = {
-            grid0: Array.from({length: 24}, (_, i) => `AG${(i+1).toString().padStart(2, '0')}`), // AG01 al AG24
-            grid1: Array.from({length: 20}, (_, i) => `AG${(i+25).toString().padStart(2, '0')}`), // AG25 al AG44
+            grid0: Array.from({length: 24}, (_, i) => `AG${(i+1).toString().padStart(2, '0')}`),
+            grid1: Array.from({length: 20}, (_, i) => `AG${(i+25).toString().padStart(2, '0')}`),
             grid2: [
-                ...Array.from({length: 24}, (_, i) => `AN${(i+1).toString().padStart(2, '0')}`),  // AN01 al AN24
-                ...Array.from({length: 20}, (_, i) => `AP${(i+1).toString().padStart(2, '0')}`)   // AP01 al AP20 completo
+                ...Array.from({length: 24}, (_, i) => `AN${(i+1).toString().padStart(2, '0')}`),
+                ...Array.from({length: 20}, (_, i) => `AP${(i+1).toString().padStart(2, '0')}`)
             ]
         };
 
@@ -228,7 +227,7 @@
         }
 
         function eliminarRegistro(idRegistro) {
-            if(confirm("¿Seguro que deseas eliminar este registro por error?")) {
+            if(confirm("¿Seguro que deseas eliminar este registro?")) {
                 let datos = JSON.parse(localStorage.getItem('registrosAQ') || '[]');
                 datos = datos.filter(d => d.id !== idRegistro);
                 localStorage.setItem('registrosAQ', JSON.stringify(datos));
@@ -279,7 +278,7 @@
                         <span class="days-left">${diffDays < 0 ? 'Terminado' : (diffDays === 0 ? 'Último día' : `${diffDays} días`)}</span>
                         <strong>${d.tanque}</strong> (${d.tipo})<br>
                         <small>Inicio: ${d.inicio} | Fin: ${d.fin}</small><br>
-                        <button class="btn-eliminar-registro" onclick="eliminarRegistro('${d.id}')">Eliminar por error</button>
+                        <button class="btn-eliminar-registro" onclick="eliminarRegistro('${d.id}')">Eliminar</button>
                     </div>`;
 
                 if (diffDays < 0) {
