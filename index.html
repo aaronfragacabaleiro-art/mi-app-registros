@@ -28,13 +28,12 @@
         .btn-ok { background: #22c55e; color: white; }
         .btn-del { background: #ef4444; color: white; }
 
-        /* Resumen / Historial */
+        /* Resumen */
         .registro-card { background: white; padding: 12px; margin-bottom: 10px; border-radius: 10px; border-left: 5px solid #22c55e; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-        .registro-card.expirado { border-left-color: #ef4444; opacity: 0.65; background: #fff5f5; }
+        .registro-card.expirado { border-left-color: #ef4444; opacity: 0.7; }
         .days-left { float: right; font-weight: bold; color: var(--primary); }
-        .registro-card.expirado .days-left { color: #ef4444; }
 
-        nav { position: fixed; bottom: 0; width: 100%; background: white; display: flex; border-top: 1px solid #ddd; z-index: 90; }
+        nav { position: fixed; bottom: 0; width: 100%; background: white; display: flex; border-top: 1px solid #ddd; }
         nav button { background: none; color: #64748b; border: none; flex: 1; padding: 15px 0; font-size: 12px; }
         nav button.active-nav { color: var(--primary); border-top: 3px solid var(--primary); }
     </style>
@@ -82,14 +81,10 @@
     </div>
 
     <div id="p3" class="tab-content">
-        <h2>Buscador e Historial Completo</h2>
-        <div style="margin-bottom:15px; background:white; padding:15px; border-radius:10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-            <p style="margin:0 0 10px 0; font-weight:bold; color:#475569;">Ver registros entre fechas:</p>
-            Desde: <input type="date" id="filtroDesde" style="width:85%; display:block;"> 
-            Hasta: <input type="date" id="filtroHasta" style="width:85%; display:block;">
-            
-            <button onclick="buscarEnHistorial()" style="background:#2563eb; color:white; width:100%; margin-top:15px; padding:12px; font-size:14px; border-radius:6px;">⚡ BUSCAR EN HISTORIAL</button>
-            <button onclick="limpiarFiltroYVerActivos()" style="background:#ef4444; color:white; width:100%; margin-top:8px; padding:10px; font-size:13px; border-radius:6px;">❌ Quitar Filtro (Ver Activos de Hoy)</button>
+        <h2>Resumen y Días Restantes</h2>
+        <div style="margin-bottom:15px; background:white; padding:10px; border-radius:10px;">
+            Filtro: <input type="date" id="filtroDesde" style="width:40%"> a <input type="date" id="filtroHasta" style="width:40%">
+            <button onclick="ejecutarFiltro()" style="background:#64748b; color:white; width:100%; margin-top:10px;">BUSCAR</button>
         </div>
         <div id="listaResumen"></div>
     </div>
@@ -104,6 +99,7 @@
     <script>
         let seleccionTemporal = { id: null, tanque: null, multi: null };
         let tanquesSeleccionados = [];
+        let modoHistorialActivo = false;
 
         const config = {
             grid0: Array.from({length: 24}, (_, i) => `AG${(i+1).toString().padStart(2, '0')}`),
@@ -114,30 +110,22 @@
         function init() {
             Object.keys(config).forEach(gridId => {
                 const container = document.getElementById(gridId);
-                if (container) {
-                    container.innerHTML = '';
-                    config[gridId].forEach(name => {
-                        const div = document.createElement('div');
-                        div.className = 'chip';
-                        div.id = `chip-${name}`;
-                        div.innerHTML = `<span>${name}</span><span class="multiplier-tag" id="tag-${name}"></span>`;
-                        div.onclick = () => abrirModal(name);
-                        container.appendChild(div);
-                    });
-                }
+                config[gridId].forEach(name => {
+                    const div = document.createElement('div');
+                    div.className = 'chip';
+                    div.id = `chip-${name}`;
+                    div.innerHTML = `<span>${name}</span><span class="multiplier-tag" id="tag-${name}"></span>`;
+                    div.onclick = () => abrirModal(name);
+                    container.appendChild(div);
+                });
             });
-            
             const hoy = obtenerFechaLocalString(new Date());
-            document.querySelectorAll('input[type="date"]').forEach(i => {
-                if(i.id !== 'filtroDesde' && i.id !== 'filtroHasta') {
-                    i.value = hoy;
-                }
-            });
+            document.querySelectorAll('input[type="date"]').forEach(i => i.value = hoy);
             
             document.getElementById('filtroDesde').value = '';
             document.getElementById('filtroHasta').value = '';
             
-            renderResumen(false);
+            renderResumen();
         }
 
         function obtenerFechaLocalString(objetoFecha) {
@@ -164,9 +152,8 @@
             tanquesSeleccionados.push({ nombre: name, multi: num });
             
             const chip = document.getElementById(`chip-${name}`);
-            if(chip) chip.classList.add('selected');
-            const tag = document.getElementById(`tag-${name}`);
-            if(tag) tag.innerText = `X${num}`;
+            chip.classList.add('selected');
+            document.getElementById(`tag-${name}`).innerText = `X${num}`;
             cerrarModal();
         }
 
@@ -175,11 +162,12 @@
             document.querySelectorAll('nav button').forEach(b => b.classList.remove('active-nav'));
             document.getElementById(tabId).classList.add('active');
             document.getElementById('btn-' + tabId).classList.add('active-nav');
-            
             if(tabId === 'p3') {
-                const desde = document.getElementById('filtroDesde').value;
-                const hasta = document.getElementById('filtroHasta').value;
-                renderResumen(!!(desde && hasta));
+                // Si entra a la pestaña de forma limpia sin buscar, quita el modo historial
+                if(!document.getElementById('filtroDesde').value || !document.getElementById('filtroHasta').value) {
+                    modoHistorialActivo = false;
+                }
+                renderResumen();
             }
         }
 
@@ -194,14 +182,12 @@
             const fechaInput = document.querySelector(`#${activa} input[type="date"]`).value;
             
             if(tanquesSeleccionados.length === 0) return alert("Selecciona tanques primero");
-            if(!fechaInput) return alert("Por favor, selecciona una fecha válida");
 
             let datos = JSON.parse(localStorage.getItem('registrosAQ') || '[]');
             
             tanquesSeleccionados.forEach(t => {
                 const partes = fechaInput.split('-');
                 let fechaFin = new Date(partes[0], partes[1] - 1, partes[2]);
-                
                 fechaFin.setDate(fechaFin.getDate() + (t.multi - 1));
                 
                 datos.push({
@@ -215,78 +201,56 @@
             localStorage.setItem('registrosAQ', JSON.stringify(datos));
             alert("¡Insertado correctamente!");
             limpiar();
-            
-            document.getElementById('filtroDesde').value = '';
-            document.getElementById('filtroHasta').value = '';
-            renderResumen(false);
+            modoHistorialActivo = false;
+            renderResumen();
         }
 
-        function buscarEnHistorial() {
+        function ejecutarFiltro() {
             const desde = document.getElementById('filtroDesde').value;
             const hasta = document.getElementById('filtroHasta').value;
-            
-            if (!desde || !hasta) {
-                alert("Por favor, introduce ambas fechas (Desde y Hasta) para filtrar.");
-                return;
+            if(desde && hasta) {
+                modoHistorialActivo = true;
             }
-            renderResumen(true);
+            renderResumen();
         }
 
-        function limpiarFiltroYVerActivos() {
-            document.getElementById('filtroDesde').value = '';
-            document.getElementById('filtroHasta').value = '';
-            renderResumen(false);
-        }
-
-        function renderResumen(forzarBusqueda = false) {
+        function renderResumen() {
             const lista = document.getElementById('listaResumen');
             const desde = document.getElementById('filtroDesde').value;
             const hasta = document.getElementById('filtroHasta').value;
-            
             const hoy = new Date();
             hoy.setHours(0,0,0,0);
             const hoyString = obtenerFechaLocalString(hoy);
 
             let datos = JSON.parse(localStorage.getItem('registrosAQ') || '[]');
             
-            if (forzarBusqueda && desde && hasta) {
-                // FILTRADO HISTÓRICO ABSOLUTO: No discrimina por fecha de vencimiento
+            if(modoHistorialActivo && desde && hasta) {
+                // LÓGICA CORREGIDA: Filtra por el rango que pides sin importar si ya expiró
                 datos = datos.filter(d => {
                     return (d.inicio >= desde && d.inicio <= hasta) || 
                            (d.fin >= desde && d.fin <= hasta) ||
                            (d.inicio <= desde && d.fin >= hasta);
                 });
             } else {
-                // PANEL ACTIVO: Muestra solo lo que está en vigor hoy o a futuro
-                datos = datos.filter(d => {
-                    return d.fin >= hoyString;
-                });
+                // Si no hay filtro, mostrar los que vencen hoy o en el futuro
+                datos = datos.filter(d => d.fin >= hoyString);
             }
 
-            lista.innerHTML = datos.length ? "" : "<p style='padding:10px; color:#64748b;'>No se encontraron registros activos ni históricos para el rango seleccionado.</p>";
+            lista.innerHTML = datos.length ? "" : "No hay registros activos.";
             
-            // Ordenar: lo más nuevo arriba
+            // Ordenar: Los más recientes arriba
             datos.sort((a,b) => b.inicio.localeCompare(a.inicio) || b.tanque.localeCompare(a.tanque));
 
             datos.forEach(d => {
-                const pFin = d.fin.split('-');
-                const fFin = new Date(pFin[0], pFin[1] - 1, pFin[2]);
+                const partesFin = d.fin.split('-');
+                const fFin = new Date(partesFin[0], partesFin[1] - 1, partesFin[2]);
                 fFin.setHours(0,0,0,0);
                 
                 const diffTime = fFin - hoy;
                 const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
                 
-                let claseExpirado = '';
-                let textoDias = '';
-
-                if (diffDays < 0) {
-                    claseExpirado = 'expirado';
-                    textoDias = `Terminado hace ${Math.abs(diffDays)} ${Math.abs(diffDays) === 1 ? 'día' : 'días'}`;
-                } else if (diffDays === 0) {
-                    textoDias = 'Último día';
-                } else {
-                    textoDias = `${diffDays} días restantes`;
-                }
+                const claseExpirado = diffDays < 0 ? 'expirado' : '';
+                const textoDias = diffDays < 0 ? 'Terminado' : (diffDays === 0 ? 'Último día' : `${diffDays} días restantes`);
 
                 lista.innerHTML += `
                     <div class="registro-card ${claseExpirado}">
